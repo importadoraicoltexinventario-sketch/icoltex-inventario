@@ -2637,7 +2637,7 @@ function mostrarNotifPush(mensaje, recuentoNombre) {
   };
 }
 
-function resetStorage() {
+async function resetStorage() {
   const _rst = await appConfirm('⚠️', 'Reiniciar datos', '¿Reiniciar todos los datos? Esta acción no se puede deshacer.', '#f43f5e');
   if (!_rst) return;
   showToast('⚠️ Función deshabilitada en modo servidor.');
@@ -2797,7 +2797,7 @@ function handleImport(event) {
   reader.readAsText(file);
 }
 
-function doImport() {
+async function doImport() {
   if (!pendingImportData) return;
   const _imp = await appConfirm('📂', 'Importar datos', '¿Reemplazar TODOS los datos actuales con los del archivo? Se perderán cambios no guardados.', '#f59e0b');
   if (!_imp) return;
@@ -4065,7 +4065,7 @@ function parsePasteData(text) {
   }).filter(r => r.codigo);
 }
 
-function confirmPaste() {
+async function confirmPaste() {
   if (role !== "admin") { showToast("⛔ Solo el administrador puede pegar datos."); return; }
   const text = document.getElementById("pasteArea").value;
   const rows = parsePasteData(text);
@@ -4183,7 +4183,7 @@ function renderCalendar() {
   }
 }
 
-function editCalDay(key, cell) {
+async function editCalDay(key, cell) {
   if (role !== "admin") return;
   const existing = CAL_TEXTS[key]||"";
   const textEl = cell.querySelector(".day-text");
