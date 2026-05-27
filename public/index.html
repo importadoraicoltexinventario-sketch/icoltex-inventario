@@ -1843,10 +1843,13 @@ select, input, textarea, button { font-family: var(--sans); }
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#f43f5e;color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;"></span>
           </button>
-          <div id="notifPanel" style="display:none;position:absolute;right:0;top:42px;width:320px;max-height:380px;overflow-y:auto;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(30,80,160,.15);z-index:1000;">
-            <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border-radius:12px 12px 0 0;">
-              <span style="font-weight:700;font-size:13px;color:#1e293b;">🔔 Notificaciones</span>
-              <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#3b82f6;background:none;border:none;cursor:pointer;font-family:var(--sans);padding:0;">Marcar leídas</button>
+          <div id="notifPanel" style="display:none;position:absolute;right:0;top:42px;width:340px;max-height:420px;overflow-y:auto;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 32px rgba(30,80,160,.18);z-index:1000;">
+            <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#1a5fd4,#2563eb);border-radius:14px 14px 0 0;position:sticky;top:0;z-index:1;">
+              <span style="font-weight:700;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                Notificaciones
+              </span>
+              <button onclick="eliminarTodasNotifs()" style="font-size:11px;color:rgba(255,255,255,.85);background:rgba(255,255,255,.15);border:none;cursor:pointer;font-family:var(--sans);padding:3px 8px;border-radius:6px;">Limpiar todo</button>
             </div>
             <div id="notifList" style="padding:4px 0;">
               <div style="text-align:center;color:#94a3b8;font-size:12px;font-style:italic;padding:20px;">Sin notificaciones</div>
@@ -1966,7 +1969,13 @@ select, input, textarea, button { font-family: var(--sans); }
         <div id="addRowBar" class="hidden">
           <button class="btn btn-success" onclick="addNewRow()">+ Añadir línea</button>
         </div>
-      </div>
+        <!-- BOTÓN MARCAR REALIZADO - solo operadores -->
+        <div id="btnMarcarRealizadoBar" class="hidden" style="margin-top:12px;display:flex;justify-content:flex-end;">
+          <button class="btn" onclick="marcarRecuentoRealizado()" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:10px 22px;font-size:13px;font-weight:700;border-radius:10px;box-shadow:0 3px 12px rgba(16,185,129,.3);gap:6px;display:flex;align-items:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="20 6 9 17 4 12"/></svg>
+            Marcar Recuento Realizado
+          </button>
+        </div>
 
       <!-- ══ HISTORIAL ══ -->
       <div id="vHistorial" class="hidden">
@@ -2415,6 +2424,10 @@ function conectarWS() {
         _notifList.unshift(msg.datos);
         renderNotifPanel();
         showToast('🔔 ' + msg.datos.mensaje);
+        // Notificación push del navegador
+        const recuentoMatch = msg.datos.mensaje && (msg.datos.mensaje.match(/"([^"]+)"/) || msg.datos.mensaje.match(/recuento\s+"?([^"]+)"?/i));
+        const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
+        mostrarNotifPush(msg.datos.mensaje, recuentoNombre);
       } else if (msg.tipo === 'recuento_actualizado') {
         // Recargar datos del recuento actualizado en tiempo real
         actualizarRecuentoEnVivo(msg.nombre);
@@ -2465,37 +2478,113 @@ function renderNotifPanel() {
     badge.style.display = 'none';
   }
   if (_notifList.length === 0) {
-    list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:12px;font-style:italic;padding:20px;">Sin notificaciones</div>';
+    list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:13px;font-style:italic;padding:28px 16px;">✅ Sin notificaciones pendientes</div>';
     return;
   }
-  list.innerHTML = _notifList.slice(0,20).map((n,i) => {
+  list.innerHTML = _notifList.slice(0,30).map((n,i) => {
     const d = new Date(n.creado||Date.now());
     const t = String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-    return `<div onclick="leerNotif(${i})" style="padding:10px 16px;border-bottom:1px solid #f1f5f9;cursor:pointer;background:${n.leida?'#fff':'#f0f6ff'};transition:background .1s;" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='${n.leida?'#fff':'#f0f6ff'}'">
-      <div style="font-size:12px;color:#1e293b;font-weight:${n.leida?'400':'600'};line-height:1.4;">${n.mensaje}</div>
-      <div style="font-size:10px;color:#94a3b8;font-family:var(--mono);margin-top:3px;">${t}</div>
+    // Extraer nombre de recuento del mensaje
+    const recuentoMatch = n.mensaje && (n.mensaje.match(/"([^"]+)"/) || n.mensaje.match(/recuento\s+"?([^"]+)"?/i));
+    const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
+    const tieneRecuento = recuentoNombre && DB && DB[recuentoNombre];
+    const bgColor = n.leida ? '#fff' : '#f0f9ff';
+    const borderLeft = n.leida ? '3px solid #e2e8f0' : '3px solid #1a5fd4';
+    return `<div onclick="abrirNotif(${i})" style="padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;background:${bgColor};border-left:${borderLeft};transition:background .1s;display:flex;align-items:flex-start;gap:10px;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='${bgColor}'">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;color:#1e293b;font-weight:${n.leida?'400':'600'};line-height:1.4;">${n.mensaje}</div>
+        <div style="font-size:10px;color:#94a3b8;font-family:var(--mono);margin-top:3px;">${t}</div>
+        ${tieneRecuento ? `<div style="margin-top:5px;font-size:10px;font-weight:700;color:#1a5fd4;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:6px;display:inline-block;">👆 Clic para ir al recuento</div>` : ''}
+      </div>
+      <button onclick="event.stopPropagation();eliminarNotif(${i})" style="background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:16px;padding:0 2px;line-height:1;flex-shrink:0;" title="Eliminar">×</button>
     </div>`;
   }).join('');
 }
 
-async function leerNotif(i) {
+async function abrirNotif(i) {
   const n = _notifList[i];
-  if (!n || n.leida) return;
+  if (!n) return;
+  // Marcar como leída en servidor
+  if (!n.leida) {
+    await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
+    n.leida = true;
+  }
+  // Extraer nombre de recuento
+  const recuentoMatch = n.mensaje && (n.mensaje.match(/"([^"]+)"/) || n.mensaje.match(/recuento\s+"?([^"]+)"?/i));
+  const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
+  // Eliminar la notificación de la lista (estilo WhatsApp)
+  _notifList.splice(i, 1);
+  renderNotifPanel();
+  // Cerrar panel
+  document.getElementById('notifPanel').style.display = 'none';
+  // Ir al recuento si existe
+  if (recuentoNombre && DB && DB[recuentoNombre]) {
+    activeInv = recuentoNombre;
+    document.getElementById("selInv").value = recuentoNombre;
+    loadInventory();
+    goView("matriz");
+    showToast('📦 Abriendo: ' + recuentoNombre);
+  }
+}
+
+async function eliminarNotif(i) {
+  const n = _notifList[i];
+  if (!n) return;
   await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
-  n.leida = true;
+  _notifList.splice(i, 1);
   renderNotifPanel();
 }
 
-async function marcarTodasLeidas() {
+async function eliminarTodasNotifs() {
   await apiFetch('/api/notificaciones/leer-todas', {method:'PUT'}).catch(()=>{});
-  _notifList.forEach(n => n.leida = true);
+  _notifList = [];
   renderNotifPanel();
+  showToast('✅ Notificaciones limpiadas.');
 }
 
 // Para que el operador avise al admin que terminó
 async function avisarCompletado(recuento) {
   await apiFetch('/api/notificaciones/aviso-completado', {method:'POST', body:{recuento}}).catch(()=>{});
   showToast('✅ Admin notificado que completaste el conteo.');
+}
+
+async function marcarRecuentoRealizado() {
+  if (!activeInv) { showToast('⚠️ No hay recuento activo.'); return; }
+  if (!confirm(`¿Marcar el recuento "${activeInv}" como realizado?\nSe guardará y se notificará al administrador.`)) return;
+  // Guardar primero
+  await guardarRecuentoActivo();
+  // Notificar al admin
+  await apiFetch('/api/notificaciones/aviso-completado', {method:'POST', body:{recuento: activeInv}}).catch(()=>{});
+  showToast('✅ Recuento marcado como realizado. Admin notificado.');
+}
+
+// ── NOTIFICACIONES PUSH (estilo WhatsApp) ──
+async function solicitarPermisoPush() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
+function mostrarNotifPush(mensaje, recuentoNombre) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const notif = new Notification('🔔 ICOLTEX Inventario', {
+    body: mensaje,
+    icon: 'https://icol-inventario.onrender.com/favicon.ico',
+    badge: 'https://icol-inventario.onrender.com/favicon.ico',
+    tag: 'icoltex-notif',
+    requireInteraction: true
+  });
+  notif.onclick = () => {
+    window.focus();
+    if (recuentoNombre && DB && DB[recuentoNombre]) {
+      activeInv = recuentoNombre;
+      document.getElementById("selInv").value = recuentoNombre;
+      loadInventory();
+      goView("matriz");
+    }
+    notif.close();
+  };
 }
 
 function resetStorage() {
@@ -2725,6 +2814,7 @@ async function doLogin() {
     document.getElementById("addRowBar").classList.add("hidden");
     document.getElementById("sessionBanner").classList.add("hidden");
     document.getElementById("fechaConteoEdit").classList.remove("hidden");
+    document.getElementById("btnMarcarRealizadoBar").classList.remove("hidden");
   }
 
   await loadFromStorage();
@@ -2740,6 +2830,7 @@ async function doLogin() {
   sidebarOpen = true; toggleSidebar();
   updateSaveIndicator();
   conectarWS();
+  solicitarPermisoPush();
 }
 
 async function doLogout() {
@@ -4238,6 +4329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           document.getElementById("addRowBar").classList.remove("hidden");
           document.getElementById("sessionBanner").classList.add("hidden");
           document.getElementById("fechaConteoEdit").classList.add("hidden");
+          document.getElementById("btnMarcarRealizadoBar").classList.add("hidden");
         } else {
           document.getElementById("adminMenu").classList.add("hidden");
           document.getElementById("btnNewInv2").classList.add("hidden");
@@ -4245,6 +4337,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           document.getElementById("addRowBar").classList.add("hidden");
           document.getElementById("sessionBanner").classList.add("hidden");
           document.getElementById("fechaConteoEdit").classList.remove("hidden");
+          document.getElementById("btnMarcarRealizadoBar").classList.remove("hidden");
         }
         await loadFromStorage();
         buildInvSelector();
@@ -4258,6 +4351,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         sidebarOpen = true; toggleSidebar();
         updateSaveIndicator();
         conectarWS();
+        solicitarPermisoPush();
       }
     }
   } catch(e) {
