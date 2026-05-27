@@ -307,22 +307,35 @@ select, input, textarea, button { font-family: var(--sans); }
 }
 
 /* sidebar right border */
-.sidebar { border-right: 1px solid #e8edf3; }
+
 
 /* ══════════════════════════════
    SIDEBAR
 ══════════════════════════════ */
+/* sidebar - flotante overlay */
 .sidebar {
   width: var(--sb-w);
   min-width: var(--sb-w);
-  background: var(--sb-bg);
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  transition: width .25s ease, min-width .25s ease;
   overflow: hidden;
   flex-shrink: 0;
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  z-index: 40;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.12);
+  border-right: 1px solid rgba(220,228,238,0.8);
+  transition: transform .25s cubic-bezier(.4,0,.2,1), opacity .2s ease;
 }
-.sidebar.collapsed { width: 0; min-width: 0; }
+.sidebar.collapsed {
+  transform: translateX(calc(-1 * var(--sb-w) - 4px));
+  opacity: 0;
+  pointer-events: none;
+}
 
 .sb-brand {
   padding: 20px 16px 14px;
