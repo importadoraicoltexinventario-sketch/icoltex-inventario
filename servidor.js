@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const bcrypt = require('bcryptjs');
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
@@ -45,7 +46,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin) res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -53,11 +55,27 @@ app.use((req, res, next) => {
   next();
 });
 
+// Confiar en el proxy de Render/Railway para HTTPS
+app.set('trust proxy', 1);
+
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER || !!process.env.RAILWAY_ENVIRONMENT;
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'icoltex-secret-2024',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 8 * 60 * 60 * 1000, sameSite: 'lax' }
+  store: MongoStore.create({
+    mongoUrl: MONGO_URL,
+    dbName: 'icoltex',
+    collectionName: 'sesiones',
+    ttl: 8 * 60 * 60
+  }),
+  cookie: {
+    maxAge: 8 * 60 * 60 * 1000,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
+    httpOnly: true
+  }
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
@@ -97,6 +115,14 @@ function broadcast(mensaje) {
     if (ws.readyState === WebSocket.OPEN) ws.send(data);
   });
 }
+
+// ── Sin caché en API ───────────────────────────────────────────────────────
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
 
 // ── Auth ───────────────────────────────────────────────────────────────────
 const auth = (req, res, next) => req.session.usuario ? next() : res.status(401).json({ error: 'No autorizado' });
