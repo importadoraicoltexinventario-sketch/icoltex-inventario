@@ -2395,6 +2395,33 @@ let nextUserId = 10;
 let isDirty = false;
 let pendingImportData = null;
 
+// ── MODAL CONFIRM PERSONALIZADO ──
+let _confirmResolve = null;
+function appConfirm(icono, titulo, mensaje, colorBtn) {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById("confirmIcon").textContent = icono;
+    document.getElementById("confirmTitle").textContent = titulo;
+    document.getElementById("confirmMsg").textContent = mensaje;
+    const btn = document.getElementById("confirmOkBtn");
+    btn.style.background = colorBtn || "#1a5fd4";
+    document.getElementById("modalConfirm").classList.remove("hidden");
+    document.getElementById("modalConfirm").style.display = "flex";
+  });
+}
+function confirmOk() {
+  document.getElementById("modalConfirm").classList.add("hidden");
+  document.getElementById("modalConfirm").style.display = "";
+  if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
+}
+function confirmCancel() {
+  document.getElementById("modalConfirm").classList.add("hidden");
+  document.getElementById("modalConfirm").style.display = "";
+  if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+}
+
+
+
 const LS_KEY = "inventario_pro_v4";
 
 // ══════════════════════════════════
@@ -3233,7 +3260,7 @@ function updateContado(i) {
   markDirty();
 }
 
-function deleteRow(e, i) {
+async function deleteRow(e, i) {
   e.stopPropagation();
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar filas."); return; }
   const _dr = await appConfirm('🗑', 'Eliminar referencia', '¿Eliminar esta referencia? Esta acción no se puede deshacer.', '#f43f5e');
@@ -4339,30 +4366,7 @@ function showToast(msg, tipo) {
   toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
 }
 
-// Reemplaza confirm() del navegador por modal bonito
-let _confirmResolve = null;
-function appConfirm(icono, titulo, mensaje, colorBtn) {
-  return new Promise(resolve => {
-    _confirmResolve = resolve;
-    document.getElementById("confirmIcon").textContent = icono;
-    document.getElementById("confirmTitle").textContent = titulo;
-    document.getElementById("confirmMsg").textContent = mensaje;
-    const btn = document.getElementById("confirmOkBtn");
-    btn.style.background = colorBtn || "#1a5fd4";
-    document.getElementById("modalConfirm").classList.remove("hidden");
-    document.getElementById("modalConfirm").style.display = "flex";
-  });
-}
-function confirmOk() {
-  document.getElementById("modalConfirm").classList.add("hidden");
-  document.getElementById("modalConfirm").style.display = "";
-  if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
-}
-function confirmCancel() {
-  document.getElementById("modalConfirm").classList.add("hidden");
-  document.getElementById("modalConfirm").style.display = "";
-  if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
-}
+
 
 // ══════════════════════════════════
 //  INIT
