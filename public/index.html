@@ -294,8 +294,8 @@ select, input, textarea, button { font-family: var(--sans); }
 ══════════════════════════════ */
 .shell {
   display: flex;
-  width: 100%;
-  max-width: 100%;
+  flex-direction: row;
+  width: 100vw;
   min-height: 100vh;
   background: var(--surface);
   border: none;
@@ -303,7 +303,6 @@ select, input, textarea, button { font-family: var(--sans); }
   box-shadow: none;
   overflow: hidden;
   position: relative;
-  animation: fadeUp .3s ease;
 }
 
 /* sidebar right border */
@@ -512,6 +511,7 @@ select, input, textarea, button { font-family: var(--sans); }
   overflow: hidden;
   min-width: 0;
   width: 100%;
+  /* sidebar is absolute so main always gets full width */
 }
 
 .topbar {
@@ -2840,7 +2840,7 @@ async function doLogin() {
 
   document.getElementById("viewLogin").classList.add("hidden");
   document.getElementById("viewApp").classList.remove("hidden");
-  document.body.style.cssText = "display:flex;align-items:flex-start;padding:0;background:var(--bg);";
+  document.body.style.cssText = "display:block;padding:0;margin:0;background:var(--bg);";
 
   document.getElementById("sbEmail").textContent = user.email;
   document.getElementById("sbBadge").textContent = role.toUpperCase();
@@ -4378,7 +4378,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         role = user.rol;
         document.getElementById("viewLogin").classList.add("hidden");
         document.getElementById("viewApp").classList.remove("hidden");
-        document.body.style.cssText = "display:flex;align-items:flex-start;padding:0;background:var(--bg);";
+        document.body.style.cssText = "display:block;padding:0;margin:0;background:var(--bg);";
         document.getElementById("sbEmail").textContent = user.email;
         document.getElementById("sbBadge").textContent = role.toUpperCase();
         document.getElementById("sbBadge").className = "sb-user-badge " + (role === "admin" ? "badge-admin" : "badge-operador");
