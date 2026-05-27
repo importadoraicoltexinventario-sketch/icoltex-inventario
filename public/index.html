@@ -310,29 +310,28 @@ select, input, textarea, button { font-family: var(--sans); }
 .sidebar { border-right: none; }
 
 /* ══════════════════════════════
-   SIDEBAR
+   SIDEBAR - flotante
 ══════════════════════════════ */
 .sidebar {
   width: var(--sb-w);
   min-width: var(--sb-w);
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255,255,255,0.96);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   display: flex;
   flex-direction: column;
-  transition: transform .25s ease, opacity .25s ease;
   overflow: hidden;
   flex-shrink: 0;
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 0; left: 0;
   height: 100%;
   z-index: 40;
-  box-shadow: 2px 0 16px rgba(0,0,0,0.10);
-  border-right: 1px solid rgba(230,235,242,0.8);
+  box-shadow: 4px 0 24px rgba(0,0,0,0.13);
+  border-right: 1px solid rgba(220,228,238,0.9);
+  transition: transform .25s cubic-bezier(.4,0,.2,1), opacity .2s ease;
 }
 .sidebar.collapsed {
-  transform: translateX(calc(-1 * var(--sb-w)));
+  transform: translateX(calc(-1 * var(--sb-w) - 10px));
   opacity: 0;
   pointer-events: none;
 }
@@ -495,8 +494,8 @@ select, input, textarea, button { font-family: var(--sans); }
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background .15s, color .15s, left .25s ease;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+  transition: background .15s, color .15s, left .25s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
 }
 .sidebar-toggle:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .sidebar-toggle.sb-open { left: calc(var(--sb-w) + 8px); }
@@ -4225,15 +4224,12 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (user) {
         currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
         role = user.rol;
-
         document.getElementById("viewLogin").classList.add("hidden");
         document.getElementById("viewApp").classList.remove("hidden");
         document.body.style.cssText = "display:block;padding:0;background:var(--bg);";
-
         document.getElementById("sbEmail").textContent = user.email;
         document.getElementById("sbBadge").textContent = role.toUpperCase();
         document.getElementById("sbBadge").className = "sb-user-badge " + (role === "admin" ? "badge-admin" : "badge-operador");
-
         if (role === "admin") {
           document.getElementById("btnNewInv2").classList.remove("hidden");
           document.getElementById("adminFechaEdit").classList.remove("hidden");
@@ -4250,7 +4246,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           document.getElementById("sessionBanner").classList.add("hidden");
           document.getElementById("fechaConteoEdit").classList.remove("hidden");
         }
-
         await loadFromStorage();
         buildInvSelector();
         if (role === "operador") {
@@ -4266,8 +4261,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
   } catch(e) {
-    // No hay sesión activa, mostrar login normalmente
-    console.log('Sin sesión activa, mostrando login.');
+    console.log('Sin sesión activa.');
   }
 });
 </script>
