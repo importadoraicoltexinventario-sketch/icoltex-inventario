@@ -2666,7 +2666,13 @@ async function loadFromStorage() {
     // Cargar calendario
     const cal = await apiFetch('/api/calendario');
     CAL_TEXTS = cal || {};
-    SCHEDULE = {};
+    // Cargar cronograma desde servidor si existe, si no usar DEFAULT_SCHEDULE
+    try {
+      const sched = await apiFetch('/api/cronograma');
+      SCHEDULE = Array.isArray(sched) && sched.length > 0 ? sched : DEFAULT_SCHEDULE;
+    } catch(e) {
+      SCHEDULE = DEFAULT_SCHEDULE;
+    }
     return true;
   } catch(e) {
     console.error('Error cargando datos del servidor:', e);
@@ -4148,7 +4154,7 @@ function renderCalendar() {
   const grid = document.getElementById("calGrid");
   grid.innerHTML = "";
   const holidays = colombiaHolidays(calYear);
-  const tasksDone = SCHEDULE._tasksDone || {};
+  const tasksDone = (Array.isArray(SCHEDULE) ? {} : (SCHEDULE._tasksDone || {}));
   ["D","L","M","M","J","V","S"].forEach((d,i) => {
     grid.insertAdjacentHTML("beforeend",`<div class="cal-dn${i===0?" cal-dn-sun":""}">${d}</div>`);
   });
@@ -4202,6 +4208,10 @@ async function editCalDay(key, cell) {
 function renderScheduleTable() {
   const tbody = document.getElementById("schedBody");
   tbody.innerHTML = "";
+  if (!Array.isArray(SCHEDULE) || SCHEDULE.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--text3);font-style:italic;">Sin actividades programadas</td></tr>`;
+    return;
+  }
   SCHEDULE.forEach(row => {
     const dot   = row.estado==="done"?"dot-done":row.estado==="active"?"dot-active":"dot-pend";
     const badge = row.estado==="done"?"badge-ok":row.estado==="active"?"badge-act":"badge-pend";
@@ -4281,7 +4291,12 @@ function toggleUserOps() {
 function buildUserOpsChecks(assigned) {
   const container = document.getElementById("userOpsChecks");
   container.innerHTML = "";
-  Object.keys(DB).forEach(name => {
+  const keys = DB ? Object.keys(DB) : [];
+  if (keys.length === 0) {
+    container.innerHTML = `<span style="color:var(--text3);font-size:12px;">No hay recuentos disponibles para asignar.</span>`;
+    return;
+  }
+  keys.forEach(name => {
     const checked = assigned.includes(name) ? "checked" : "";
     container.insertAdjacentHTML("beforeend",`<label class="check-item"><input type="checkbox" value="${esc(name)}" ${checked}> ${esc(name)}</label>`);
   });
