@@ -33,7 +33,7 @@
   --text3: #8a857e;
   --mono: 'DM Mono', monospace;
   --sans: 'DM Sans', sans-serif;
-  --sb-w: 224px;
+  --sb-w: 190px;
   --radius: 8px;
   --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.05);
   --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
@@ -307,7 +307,7 @@ select, input, textarea, button { font-family: var(--sans); }
 }
 
 /* sidebar right border */
-.sidebar { border-right: 1px solid #e8edf3; }
+.sidebar { border-right: none; }
 
 /* ══════════════════════════════
    SIDEBAR
@@ -315,14 +315,27 @@ select, input, textarea, button { font-family: var(--sans); }
 .sidebar {
   width: var(--sb-w);
   min-width: var(--sb-w);
-  background: var(--sb-bg);
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  transition: width .25s ease, min-width .25s ease;
+  transition: transform .25s ease, opacity .25s ease;
   overflow: hidden;
   flex-shrink: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  z-index: 40;
+  box-shadow: 2px 0 16px rgba(0,0,0,0.10);
+  border-right: 1px solid rgba(230,235,242,0.8);
 }
-.sidebar.collapsed { width: 0; min-width: 0; }
+.sidebar.collapsed {
+  transform: translateX(calc(-1 * var(--sb-w)));
+  opacity: 0;
+  pointer-events: none;
+}
 
 .sb-brand {
   padding: 20px 16px 14px;
@@ -483,6 +496,7 @@ select, input, textarea, button { font-family: var(--sans); }
   align-items: center;
   justify-content: center;
   transition: background .15s, color .15s, left .25s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
 }
 .sidebar-toggle:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .sidebar-toggle.sb-open { left: calc(var(--sb-w) + 8px); }
@@ -1812,7 +1826,7 @@ select, input, textarea, button { font-family: var(--sans); }
         <button class="btn" onclick="window.print()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir
         </button>
-        <button class="btn btn-dark" onclick="saveToLocalStorage()">
+        <button class="btn btn-dark" onclick="guardarManual()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Guardar
         </button>
         <button class="btn" onclick="refrescarDatos()" title="Recargar datos del servidor" style="background:#e0f2fe;color:#0369a1;border:1.5px solid #7dd3fc;">
@@ -2528,11 +2542,21 @@ async function loadFromStorage() {
 
 async function refrescarDatos() {
   showToast('🔄 Recargando datos...');
-  await loadFromStorage();
-  buildInvSelector();
-  if (activeInv && DB[activeInv]) loadInventory();
-  renderHistory();
-  showToast('✅ Datos actualizados.');
+  try {
+    await loadFromStorage();
+    buildInvSelector();
+    if (activeInv && DB[activeInv]) loadInventory();
+    else if (Object.keys(DB).length > 0) {
+      activeInv = Object.keys(DB)[0];
+      document.getElementById("selInv").value = activeInv;
+      loadInventory();
+    }
+    renderHistory();
+    renderNotifPanel();
+    showToast('✅ Datos actualizados.');
+  } catch(e) {
+    showToast('⚠️ Error al recargar: ' + e.message);
+  }
 }
 
 async function saveToLocalStorage() {
@@ -2562,7 +2586,16 @@ async function guardarRecuentoActivo() {
     updateSaveIndicator();
   } catch(e) {
     showToast('⚠️ Error guardando: ' + e.message);
+    isDirty = true;
+    updateSaveIndicator();
   }
+}
+
+async function guardarManual() {
+  if (!activeInv || !DB[activeInv]) { showToast('⚠️ No hay recuento activo.'); return; }
+  showToast('💾 Guardando...');
+  await guardarRecuentoActivo();
+  if (!isDirty) showToast('✅ Guardado correctamente.');
 }
 
 function updateSaveIndicator() {
@@ -4182,7 +4215,61 @@ function showToast(msg) {
 // ══════════════════════════════════
 //  INIT
 // ══════════════════════════════════
-// Datos se cargan tras login via API
+// Verificar sesión activa al cargar la página (evita cerrar sesión al refrescar)
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/sesion', { credentials: 'same-origin' });
+    if (res.ok) {
+      const data = await res.json();
+      const user = data.usuario;
+      if (user) {
+        currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
+        role = user.rol;
+
+        document.getElementById("viewLogin").classList.add("hidden");
+        document.getElementById("viewApp").classList.remove("hidden");
+        document.body.style.cssText = "display:block;padding:0;background:var(--bg);";
+
+        document.getElementById("sbEmail").textContent = user.email;
+        document.getElementById("sbBadge").textContent = role.toUpperCase();
+        document.getElementById("sbBadge").className = "sb-user-badge " + (role === "admin" ? "badge-admin" : "badge-operador");
+
+        if (role === "admin") {
+          document.getElementById("btnNewInv2").classList.remove("hidden");
+          document.getElementById("adminFechaEdit").classList.remove("hidden");
+          document.getElementById("adminMenu").classList.remove("hidden");
+          document.getElementById("calEditHint").classList.remove("hidden");
+          document.getElementById("addRowBar").classList.remove("hidden");
+          document.getElementById("sessionBanner").classList.add("hidden");
+          document.getElementById("fechaConteoEdit").classList.add("hidden");
+        } else {
+          document.getElementById("adminMenu").classList.add("hidden");
+          document.getElementById("btnNewInv2").classList.add("hidden");
+          document.getElementById("adminFechaEdit").classList.add("hidden");
+          document.getElementById("addRowBar").classList.add("hidden");
+          document.getElementById("sessionBanner").classList.add("hidden");
+          document.getElementById("fechaConteoEdit").classList.remove("hidden");
+        }
+
+        await loadFromStorage();
+        buildInvSelector();
+        if (role === "operador") {
+          const ops = currentUser.ops;
+          activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
+          document.getElementById("selInv").value = activeInv;
+        }
+        loadInventory();
+        goView("historial");
+        sidebarOpen = true; toggleSidebar();
+        updateSaveIndicator();
+        conectarWS();
+      }
+    }
+  } catch(e) {
+    // No hay sesión activa, mostrar login normalmente
+    console.log('Sin sesión activa, mostrando login.');
+  }
+});
 </script>
 
 </body>
