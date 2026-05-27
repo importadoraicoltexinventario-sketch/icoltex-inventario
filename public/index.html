@@ -510,7 +510,6 @@ select, input, textarea, button { font-family: var(--sans); }
   background: var(--bg);
   overflow: hidden;
   min-width: 0;
-  width: 100%;
 }
 
 .topbar {
@@ -526,7 +525,14 @@ select, input, textarea, button { font-family: var(--sans); }
   flex-wrap: wrap;
 }
 
-
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #eaf2fb;
+  overflow: hidden;
+  min-width: 0;
+}
 
 .topbar-title {
   font-size: 16px;
@@ -1522,22 +1528,32 @@ select, input, textarea, button { font-family: var(--sans); }
 ══════════════════════════════ */
 .toast {
   position: fixed;
-  bottom: 20px; right: 20px;
-  background: var(--sb-bg);
-  color: #f0ebe3;
-  padding: 11px 16px;
-  border-radius: 8px;
+  bottom: 24px; right: 24px;
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 12px 18px 12px 14px;
+  border-radius: 12px;
   font-size: 13px;
   font-weight: 500;
-  z-index: 200;
+  z-index: 9999;
   opacity: 0;
-  transform: translateY(10px);
-  transition: all .25s;
+  transform: translateY(16px) scale(0.97);
+  transition: all .22s cubic-bezier(.4,0,.2,1);
   pointer-events: none;
-  max-width: 320px;
-  border-left: 3px solid var(--accent);
+  max-width: 340px;
+  min-width: 200px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.22);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-left: 4px solid #3b82f6;
+  letter-spacing: .1px;
+  line-height: 1.4;
 }
-.toast.show { opacity: 1; transform: translateY(0); }
+.toast.show { opacity: 1; transform: translateY(0) scale(1); }
+.toast.toast-success { border-left-color: #10b981; }
+.toast.toast-error { border-left-color: #f43f5e; }
+.toast.toast-warning { border-left-color: #f59e0b; }
 
 /* ══════════════════════════════
    RESPONSIVE
@@ -1839,7 +1855,10 @@ select, input, textarea, button { font-family: var(--sans); }
           </button>
           <div id="notifPanel" style="display:none;position:absolute;right:0;top:42px;width:340px;max-height:420px;overflow-y:auto;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 32px rgba(30,80,160,.18);z-index:1000;">
             <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#1a5fd4,#2563eb);border-radius:14px 14px 0 0;position:sticky;top:0;z-index:1;">
-              <span style="font-weight:700;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;">🔔 Notificaciones</span>
+              <span style="font-weight:700;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                Notificaciones
+              </span>
               <button onclick="eliminarTodasNotifs()" style="font-size:11px;color:rgba(255,255,255,.85);background:rgba(255,255,255,.15);border:none;cursor:pointer;font-family:var(--sans);padding:3px 8px;border-radius:6px;">Limpiar todo</button>
             </div>
             <div id="notifList" style="padding:4px 0;">
@@ -1960,12 +1979,13 @@ select, input, textarea, button { font-family: var(--sans); }
         <div id="addRowBar" class="hidden">
           <button class="btn btn-success" onclick="addNewRow()">+ Añadir línea</button>
         </div>
+        <!-- BOTÓN MARCAR REALIZADO - solo operadores -->
         <div id="btnMarcarRealizadoBar" class="hidden" style="margin-top:12px;display:flex;justify-content:flex-end;">
-          <button onclick="marcarRecuentoRealizado()" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:10px 22px;font-size:13px;font-weight:700;border-radius:10px;box-shadow:0 3px 12px rgba(16,185,129,.3);cursor:pointer;display:flex;align-items:center;gap:6px;">
-            ✅ Marcar Recuento Realizado
+          <button class="btn" onclick="marcarRecuentoRealizado()" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:10px 22px;font-size:13px;font-weight:700;border-radius:10px;box-shadow:0 3px 12px rgba(16,185,129,.3);gap:6px;display:flex;align-items:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="20 6 9 17 4 12"/></svg>
+            Marcar Recuento Realizado
           </button>
         </div>
-      </div>
 
       <!-- ══ HISTORIAL ══ -->
       <div id="vHistorial" class="hidden">
@@ -2063,6 +2083,18 @@ select, input, textarea, button { font-family: var(--sans); }
 
     </div><!-- /content -->
   </div><!-- /main -->
+  <!-- MODAL CONFIRM PERSONALIZADO -->
+  <div id="modalConfirm" class="hidden" style="position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(3px);z-index:9998;display:flex;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:28px 28px 22px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .2s ease;">
+      <div id="confirmIcon" style="font-size:32px;text-align:center;margin-bottom:12px;"></div>
+      <div id="confirmTitle" style="font-size:16px;font-weight:700;color:#0f172a;text-align:center;margin-bottom:8px;"></div>
+      <div id="confirmMsg" style="font-size:13px;color:#64748b;text-align:center;line-height:1.6;margin-bottom:22px;"></div>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button onclick="confirmCancel()" style="padding:9px 22px;border-radius:9px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);">Cancelar</button>
+        <button id="confirmOkBtn" onclick="confirmOk()" style="padding:9px 22px;border-radius:9px;border:none;background:#1a5fd4;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);">Confirmar</button>
+      </div>
+    </div>
+  </div>
 </div><!-- /shell -->
 
 <!-- MODAL NUEVO INVENTARIO -->
@@ -2414,8 +2446,10 @@ function conectarWS() {
         _notifList.unshift(msg.datos);
         renderNotifPanel();
         showToast('🔔 ' + msg.datos.mensaje);
-        const _rm = msg.datos.mensaje && (msg.datos.mensaje.match(/"([^"]+)"/) || msg.datos.mensaje.match(/recuento\s+"?([^"]+)"?/i));
-        mostrarNotifPush(msg.datos.mensaje, _rm ? _rm[1] : null);
+        // Notificación push del navegador
+        const recuentoMatch = msg.datos.mensaje && (msg.datos.mensaje.match(/"([^"]+)"/) || msg.datos.mensaje.match(/recuento\s+"?([^"]+)"?/i));
+        const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
+        mostrarNotifPush(msg.datos.mensaje, recuentoNombre);
       } else if (msg.tipo === 'recuento_actualizado') {
         // Recargar datos del recuento actualizado en tiempo real
         actualizarRecuentoEnVivo(msg.nombre);
@@ -2472,6 +2506,7 @@ function renderNotifPanel() {
   list.innerHTML = _notifList.slice(0,30).map((n,i) => {
     const d = new Date(n.creado||Date.now());
     const t = String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
+    // Extraer nombre de recuento del mensaje
     const recuentoMatch = n.mensaje && (n.mensaje.match(/"([^"]+)"/) || n.mensaje.match(/recuento\s+"?([^"]+)"?/i));
     const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
     const tieneRecuento = recuentoNombre && DB && DB[recuentoNombre];
@@ -2481,9 +2516,9 @@ function renderNotifPanel() {
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;color:#1e293b;font-weight:${n.leida?'400':'600'};line-height:1.4;">${n.mensaje}</div>
         <div style="font-size:10px;color:#94a3b8;font-family:var(--mono);margin-top:3px;">${t}</div>
-        ${tieneRecuento ? '<div style="margin-top:5px;font-size:10px;font-weight:700;color:#1a5fd4;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:6px;display:inline-block;">👆 Toca para ir al recuento</div>' : ''}
+        ${tieneRecuento ? `<div style="margin-top:5px;font-size:10px;font-weight:700;color:#1a5fd4;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:6px;display:inline-block;">👆 Clic para ir al recuento</div>` : ''}
       </div>
-      <button onclick="event.stopPropagation();eliminarNotif(${i})" style="background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:18px;padding:0 2px;line-height:1;flex-shrink:0;" title="Eliminar">×</button>
+      <button onclick="event.stopPropagation();eliminarNotif(${i})" style="background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:16px;padding:0 2px;line-height:1;flex-shrink:0;" title="Eliminar">×</button>
     </div>`;
   }).join('');
 }
@@ -2491,15 +2526,20 @@ function renderNotifPanel() {
 async function abrirNotif(i) {
   const n = _notifList[i];
   if (!n) return;
+  // Marcar como leída en servidor
   if (!n.leida) {
     await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
     n.leida = true;
   }
+  // Extraer nombre de recuento
   const recuentoMatch = n.mensaje && (n.mensaje.match(/"([^"]+)"/) || n.mensaje.match(/recuento\s+"?([^"]+)"?/i));
   const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
+  // Eliminar la notificación de la lista (estilo WhatsApp)
   _notifList.splice(i, 1);
   renderNotifPanel();
+  // Cerrar panel
   document.getElementById('notifPanel').style.display = 'none';
+  // Ir al recuento si existe
   if (recuentoNombre && DB && DB[recuentoNombre]) {
     activeInv = recuentoNombre;
     document.getElementById("selInv").value = recuentoNombre;
@@ -2532,13 +2572,16 @@ async function avisarCompletado(recuento) {
 
 async function marcarRecuentoRealizado() {
   if (!activeInv) { showToast('⚠️ No hay recuento activo.'); return; }
-  if (!confirm(`¿Marcar el recuento "${activeInv}" como realizado?\nSe guardará y se notificará al administrador.`)) return;
+  const _mrr = await appConfirm('✅', 'Marcar como Realizado', `¿Marcar el recuento "${activeInv}" como realizado? Se guardará y se notificará al administrador.`, '#10b981');
+  if (!_mrr) return;
+  // Guardar primero
   await guardarRecuentoActivo();
+  // Notificar al admin
   await apiFetch('/api/notificaciones/aviso-completado', {method:'POST', body:{recuento: activeInv}}).catch(()=>{});
   showToast('✅ Recuento marcado como realizado. Admin notificado.');
 }
 
-// ── NOTIFICACIONES PUSH DEL NAVEGADOR ──
+// ── NOTIFICACIONES PUSH (estilo WhatsApp) ──
 async function solicitarPermisoPush() {
   if (!('Notification' in window)) return;
   if (Notification.permission === 'default') {
@@ -2550,6 +2593,8 @@ function mostrarNotifPush(mensaje, recuentoNombre) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   const notif = new Notification('🔔 ICOLTEX Inventario', {
     body: mensaje,
+    icon: 'https://icol-inventario.onrender.com/favicon.ico',
+    badge: 'https://icol-inventario.onrender.com/favicon.ico',
     tag: 'icoltex-notif',
     requireInteraction: true
   });
@@ -2566,7 +2611,8 @@ function mostrarNotifPush(mensaje, recuentoNombre) {
 }
 
 function resetStorage() {
-  if (!confirm('¿Reiniciar todos los datos? (Esta acción no se puede deshacer)')) return;
+  const _rst = await appConfirm('⚠️', 'Reiniciar datos', '¿Reiniciar todos los datos? Esta acción no se puede deshacer.', '#f43f5e');
+  if (!_rst) return;
   showToast('⚠️ Función deshabilitada en modo servidor.');
 }
 
@@ -2726,7 +2772,8 @@ function handleImport(event) {
 
 function doImport() {
   if (!pendingImportData) return;
-  if (!confirm("¿Reemplazar TODOS los datos actuales con los del archivo? Se perderán cambios no guardados.")) return;
+  const _imp = await appConfirm('📂', 'Importar datos', '¿Reemplazar TODOS los datos actuales con los del archivo? Se perderán cambios no guardados.', '#f59e0b');
+  if (!_imp) return;
   DB        = pendingImportData.DB;
   USERS     = pendingImportData.USERS;
   SCHEDULE  = pendingImportData.SCHEDULE  || JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
@@ -2812,7 +2859,10 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  if (isDirty && !confirm("Tienes cambios sin guardar. ¿Salir de todas formas?")) return;
+  if (isDirty) {
+    const _lo = await appConfirm('⚠️', 'Cambios sin guardar', 'Tienes cambios sin guardar. ¿Salir de todas formas?', '#f59e0b');
+    if (!_lo) return;
+  }
   await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
   if (_ws) { _ws.onclose = null; _ws.close(); _ws = null; }
   document.getElementById("viewApp").classList.add("hidden");
@@ -3186,7 +3236,8 @@ function updateContado(i) {
 function deleteRow(e, i) {
   e.stopPropagation();
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar filas."); return; }
-  if (!confirm("¿Eliminar esta referencia?")) return;
+  const _dr = await appConfirm('🗑', 'Eliminar referencia', '¿Eliminar esta referencia? Esta acción no se puede deshacer.', '#f43f5e');
+  if (!_dr) return;
   DB[activeInv].articulos.splice(i, 1);
   markDirty();
   clearEntry(); renderMatrix();
@@ -3319,7 +3370,8 @@ function switchToInv(name) {
 
 async function deleteInventory(name) {
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar recuentos."); return; }
-  if (!confirm(`¿Eliminar el recuento "${name}"? No se puede deshacer.`)) return;
+  const _di = await appConfirm('🗑', 'Eliminar Recuento', `¿Eliminar el recuento "${name}"? Esta acción no se puede deshacer.`, '#f43f5e');
+  if (!_di) return;
   try {
     await apiFetch('/api/recuentos/' + encodeURIComponent(name), { method: 'DELETE' });
     delete DB[name];
@@ -3991,7 +4043,8 @@ function confirmPaste() {
   const text = document.getElementById("pasteArea").value;
   const rows = parsePasteData(text);
   if (!rows.length) { showToast("⚠️ No se detectaron datos válidos."); return; }
-  if (!confirm(`¿Añadir ${rows.length} fila${rows.length>1?"s":""} al recuento "${activeInv}"?`)) return;
+  const _cp = await appConfirm('📋', 'Pegar datos', `¿Añadir ${rows.length} fila${rows.length>1?"s":""} al recuento "${activeInv}"?`);
+  if (!_cp) return;
   rows.forEach(r => DB[activeInv].articulos.push(r));
   markDirty();
   renderMatrix();
@@ -4239,7 +4292,8 @@ async function saveUser() {
 
 async function deleteUser(id) {
   if (String(id) === String(currentUser.id)) { alert("No puedes eliminarte a ti mismo."); return; }
-  if (!confirm("¿Eliminar este usuario?")) return;
+  const _du = await appConfirm('👤', 'Eliminar Usuario', '¿Eliminar este usuario? Esta acción no se puede deshacer.', '#f43f5e');
+  if (!_du) return;
   try {
     await apiFetch('/api/usuarios/' + id, { method: 'DELETE' });
     // Recargar lista desde servidor
@@ -4272,12 +4326,42 @@ function exportCSV() {
 //  TOAST
 // ══════════════════════════════════
 let toastTimer;
-function showToast(msg) {
+function showToast(msg, tipo) {
   const t = document.getElementById("toast");
   t.textContent = msg;
+  t.className = "toast";
+  if (tipo) { t.classList.add("toast-" + tipo); }
+  else if (msg.includes("✅") || msg.includes("Guardado") || msg.includes("correcto")) { t.classList.add("toast-success"); }
+  else if (msg.includes("❌") || msg.includes("Error") || msg.includes("error")) { t.classList.add("toast-error"); }
+  else if (msg.includes("⚠️") || msg.includes("Sin guardar")) { t.classList.add("toast-warning"); }
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+// Reemplaza confirm() del navegador por modal bonito
+let _confirmResolve = null;
+function appConfirm(icono, titulo, mensaje, colorBtn) {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById("confirmIcon").textContent = icono;
+    document.getElementById("confirmTitle").textContent = titulo;
+    document.getElementById("confirmMsg").textContent = mensaje;
+    const btn = document.getElementById("confirmOkBtn");
+    btn.style.background = colorBtn || "#1a5fd4";
+    document.getElementById("modalConfirm").classList.remove("hidden");
+    document.getElementById("modalConfirm").style.display = "flex";
+  });
+}
+function confirmOk() {
+  document.getElementById("modalConfirm").classList.add("hidden");
+  document.getElementById("modalConfirm").style.display = "";
+  if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
+}
+function confirmCancel() {
+  document.getElementById("modalConfirm").classList.add("hidden");
+  document.getElementById("modalConfirm").style.display = "";
+  if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
 }
 
 // ══════════════════════════════════
