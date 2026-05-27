@@ -2400,7 +2400,7 @@ let _confirmResolve = null;
 function appConfirm(icono, titulo, mensaje, colorBtn) {
   return new Promise(resolve => {
     _confirmResolve = resolve;
-    document.getElementById("confirmIcon").textContent = icono;
+    document.getElementById("confirmIcon").innerHTML = icono;
     document.getElementById("confirmTitle").textContent = titulo;
     document.getElementById("confirmMsg").textContent = mensaje;
     const btn = document.getElementById("confirmOkBtn");
@@ -2599,7 +2599,7 @@ async function avisarCompletado(recuento) {
 
 async function marcarRecuentoRealizado() {
   if (!activeInv) { showToast('⚠️ No hay recuento activo.'); return; }
-  const _mrr = await appConfirm('✅', 'Marcar como Realizado', `¿Marcar el recuento "${activeInv}" como realizado? Se guardará y se notificará al administrador.`, '#10b981');
+  const _mrr = await appConfirm('(OK)', 'Marcar como Realizado', `¿Marcar el recuento "${activeInv}" como realizado? Se guardará y se notificará al administrador.`, '#10b981');
   if (!_mrr) return;
   // Guardar primero
   await guardarRecuentoActivo();
@@ -2638,7 +2638,7 @@ function mostrarNotifPush(mensaje, recuentoNombre) {
 }
 
 async function resetStorage() {
-  const _rst = await appConfirm('⚠️', 'Reiniciar datos', '¿Reiniciar todos los datos? Esta acción no se puede deshacer.', '#f43f5e');
+  const _rst = await appConfirm('(!)', 'Reiniciar datos', '¿Reiniciar todos los datos? Esta acción no se puede deshacer.', '#f43f5e');
   if (!_rst) return;
   showToast('⚠️ Función deshabilitada en modo servidor.');
 }
@@ -2799,7 +2799,7 @@ function handleImport(event) {
 
 async function doImport() {
   if (!pendingImportData) return;
-  const _imp = await appConfirm('📂', 'Importar datos', '¿Reemplazar TODOS los datos actuales con los del archivo? Se perderán cambios no guardados.', '#f59e0b');
+  const _imp = await appConfirm('(F)', 'Importar datos', '¿Reemplazar TODOS los datos actuales con los del archivo? Se perderán cambios no guardados.', '#f59e0b');
   if (!_imp) return;
   DB        = pendingImportData.DB;
   USERS     = pendingImportData.USERS;
@@ -2887,7 +2887,7 @@ async function doLogin() {
 
 async function doLogout() {
   if (isDirty) {
-    const _lo = await appConfirm('⚠️', 'Cambios sin guardar', 'Tienes cambios sin guardar. ¿Salir de todas formas?', '#f59e0b');
+    const _lo = await appConfirm('(!)', 'Cambios sin guardar', 'Tienes cambios sin guardar. ¿Salir de todas formas?', '#f59e0b');
     if (!_lo) return;
   }
   await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
@@ -3263,7 +3263,7 @@ function updateContado(i) {
 async function deleteRow(e, i) {
   e.stopPropagation();
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar filas."); return; }
-  const _dr = await appConfirm('🗑', 'Eliminar referencia', '¿Eliminar esta referencia? Esta acción no se puede deshacer.', '#f43f5e');
+  const _dr = await appConfirm('(X)', 'Eliminar referencia', '¿Eliminar esta referencia? Esta acción no se puede deshacer.', '#f43f5e');
   if (!_dr) return;
   DB[activeInv].articulos.splice(i, 1);
   markDirty();
@@ -3397,7 +3397,7 @@ function switchToInv(name) {
 
 async function deleteInventory(name) {
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar recuentos."); return; }
-  const _di = await appConfirm('🗑', 'Eliminar Recuento', `¿Eliminar el recuento "${name}"? Esta acción no se puede deshacer.`, '#f43f5e');
+  const _di = await appConfirm('(X)', 'Eliminar Recuento', `¿Eliminar el recuento "${name}"? Esta acción no se puede deshacer.`, '#f43f5e');
   if (!_di) return;
   try {
     await apiFetch('/api/recuentos/' + encodeURIComponent(name), { method: 'DELETE' });
@@ -4070,7 +4070,7 @@ async function confirmPaste() {
   const text = document.getElementById("pasteArea").value;
   const rows = parsePasteData(text);
   if (!rows.length) { showToast("⚠️ No se detectaron datos válidos."); return; }
-  const _cp = await appConfirm('📋', 'Pegar datos', `¿Añadir ${rows.length} fila${rows.length>1?"s":""} al recuento "${activeInv}"?`);
+  const _cp = await appConfirm('(C)', 'Pegar datos', `¿Añadir ${rows.length} fila${rows.length>1?"s":""} al recuento "${activeInv}"?`);
   if (!_cp) return;
   rows.forEach(r => DB[activeInv].articulos.push(r));
   markDirty();
@@ -4319,7 +4319,7 @@ async function saveUser() {
 
 async function deleteUser(id) {
   if (String(id) === String(currentUser.id)) { alert("No puedes eliminarte a ti mismo."); return; }
-  const _du = await appConfirm('👤', 'Eliminar Usuario', '¿Eliminar este usuario? Esta acción no se puede deshacer.', '#f43f5e');
+  const _du = await appConfirm('(U)', 'Eliminar Usuario', '¿Eliminar este usuario? Esta acción no se puede deshacer.', '#f43f5e');
   if (!_du) return;
   try {
     await apiFetch('/api/usuarios/' + id, { method: 'DELETE' });
