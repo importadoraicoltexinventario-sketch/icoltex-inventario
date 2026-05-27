@@ -2652,6 +2652,10 @@ async function loadFromStorage() {
         comentarios: r.comentarios || []
       };
     });
+    // Si el servidor devuelve vacío, usar datos por defecto
+    if (Object.keys(DB).length === 0) {
+      DB = JSON.parse(JSON.stringify(DEFAULT_DB));
+    }
     // Cargar usuarios (siempre, para poder asignar operadores)
     try {
       const usuarios = await apiFetch('/api/usuarios');
@@ -2662,7 +2666,13 @@ async function loadFromStorage() {
         rol: u.rol,
         ops: u.ops || []
       }));
-    } catch(e) { console.warn('No se pudieron cargar usuarios:', e.message); }
+      if (USERS.length === 0) {
+        USERS = DEFAULT_USERS_HASHED.map(u => ({ ...u }));
+      }
+    } catch(e) {
+      console.warn('No se pudieron cargar usuarios:', e.message);
+      USERS = DEFAULT_USERS_HASHED.map(u => ({ ...u }));
+    }
     // Cargar calendario
     const cal = await apiFetch('/api/calendario');
     CAL_TEXTS = cal || {};
@@ -2676,6 +2686,11 @@ async function loadFromStorage() {
     return true;
   } catch(e) {
     console.error('Error cargando datos del servidor:', e);
+    // Fallback: usar datos por defecto si el servidor no responde
+    if (!DB || Object.keys(DB).length === 0) DB = JSON.parse(JSON.stringify(DEFAULT_DB));
+    if (!USERS || USERS.length === 0) USERS = DEFAULT_USERS_HASHED.map(u => ({ ...u }));
+    if (!Array.isArray(SCHEDULE) || SCHEDULE.length === 0) SCHEDULE = DEFAULT_SCHEDULE;
+    if (!CAL_TEXTS) CAL_TEXTS = { ...DEFAULT_CAL };
     return false;
   }
 }
