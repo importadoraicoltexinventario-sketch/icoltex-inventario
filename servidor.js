@@ -45,7 +45,8 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+  if (origin) res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -53,11 +54,21 @@ app.use((req, res, next) => {
   next();
 });
 
+// Confiar en el proxy de Render/Railway para HTTPS
+app.set('trust proxy', 1);
+
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER || !!process.env.RAILWAY_ENVIRONMENT;
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'icoltex-secret-2024',
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 8 * 60 * 60 * 1000, sameSite: 'lax' }
+  cookie: {
+    maxAge: 8 * 60 * 60 * 1000,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
+    httpOnly: true
+  }
 }));
 
 app.use(express.static(path.join(__dirname, 'public')));
