@@ -3324,13 +3324,8 @@ function renderHistory() {
   empty.classList.add("hidden");
 
   keys.forEach(name => {
-    try {
     const inv = DB[name];
-    const arts = (inv.articulos || []).map(a => ({
-      ...a,
-      fisico: Number(a.fisico) || 0,
-      sap: Number(a.sap) || 0
-    }));
+    const arts = (inv.articulos || []).map(a => ({...a, fisico: Number(a.fisico)||0, sap: Number(a.sap)||0}));
     const total      = arts.length;
     const exactos    = arts.filter(a => Math.abs(a.fisico - a.sap) <= 0.001 && (a.fisico > 0 || a._contado)).length;
     const conDif     = arts.filter(a => Math.abs(a.fisico - a.sap) > 0.001).length;
@@ -3388,7 +3383,6 @@ function renderHistory() {
         </div>
       </div>
     `);
-    } catch(e) { console.error('Error renderHistory card:', name, e); }
   });
 }
 
