@@ -2434,7 +2434,11 @@ async function apiFetch(path, opts={}) {
   try {
     const fetchOpts = {
       method: opts.method || 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
       credentials: 'same-origin'
     };
     if (opts.body) fetchOpts.body = JSON.stringify(opts.body);
