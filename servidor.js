@@ -55,10 +55,8 @@ app.use((req, res, next) => {
   next();
 });
 
-// Confiar en el proxy de Render/Railway para HTTPS
+// Confiar en el proxy de Render para HTTPS
 app.set('trust proxy', 1);
-
-const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER || !!process.env.RAILWAY_ENVIRONMENT;
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'icoltex-secret-2024',
@@ -72,8 +70,8 @@ app.use(session({
   }),
   cookie: {
     maxAge: 8 * 60 * 60 * 1000,
-    sameSite: isProduction ? 'none' : 'lax',
-    secure: isProduction,
+    sameSite: 'none',
+    secure: true,
     httpOnly: true
   }
 }));
@@ -142,7 +140,10 @@ app.post('/api/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Credenciales incorrectas' });
     const user = { id: u._id.toString(), nombre: u.nombre, email: u.email, rol: u.rol, ops: u.ops || [] };
     req.session.usuario = user;
-    res.json({ ok: true, usuario: user });
+    req.session.save((err) => {
+      if (err) return res.status(500).json({ error: 'Error guardando sesión' });
+      res.json({ ok: true, usuario: user });
+    });
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
