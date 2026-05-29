@@ -7,7 +7,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
-const fs = require('fs');
 
 const app = express();
 const server = http.createServer(app);
@@ -25,9 +24,7 @@ MongoClient.connect(MONGO_URL).then(client => {
   db.collection('calendario').createIndex({ clave: 1 }, { unique: true });
   console.log('✅ MongoDB conectado');
 
-  // Crear admin si no existe
   db.collection('usuarios').countDocuments().then(count => {
-    console.log('Usuarios en DB:', count);
     if (count === 0) {
       const hash = bcrypt.hashSync('admin123', 10);
       db.collection('usuarios').insertOne({
@@ -51,29 +48,32 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin) res.header('Access-Control-Allow-Origin', origin);
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type,Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-// Confiar en el proxy de Render/Railway para HTTPS
 app.set('trust proxy', 1);
 
 const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER || !!process.env.RAILWAY_ENVIRONMENT;
 
+// ── FIX: Session store con TTL largo y touch habilitado ───────────────────
 app.use(session({
   secret: process.env.SESSION_SECRET || 'icoltex-secret-2024',
   resave: false,
   saveUninitialized: false,
+  rolling: true,          // FIX: renueva el TTL en cada request
   store: MongoStore.create({
     mongoUrl: MONGO_URL,
     dbName: 'icoltex',
     collectionName: 'sesiones',
-    ttl: 8 * 60 * 60
+    ttl: 24 * 60 * 60,    // FIX: 24 horas (antes eran 8)
+    touchAfter: 60,        // FIX: evita re-escribir la sesión en cada request
+    autoRemove: 'native'
   }),
   cookie: {
-    maxAge: 8 * 60 * 60 * 1000,
+    maxAge: 24 * 60 * 60 * 1000,  // FIX: 24 horas
     sameSite: isProduction ? 'none' : 'lax',
     secure: isProduction,
     httpOnly: true
@@ -126,13 +126,13 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-// ── Auth ───────────────────────────────────────────────────────────────────
+// ── Auth middleware ────────────────────────────────────────────────────────
 const auth = (req, res, next) => {
-  // Try session first
+  // 1) Sesión activa
   if (req.session && req.session.usuario) {
     return next();
   }
-  // Try JWT token from Authorization header
+  // 2) JWT en header Authorization
   const authHeader = req.headers['authorization'];
   if (authHeader && authHeader.startsWith('Bearer ')) {
     try {
@@ -142,29 +142,52 @@ const auth = (req, res, next) => {
       return next();
     } catch(e) {}
   }
-  return res.status(401).json({ error: 'No autorizado' });
+  // FIX: devolver 401 claro para que el frontend lo maneje
+  return res.status(401).json({ error: 'No autorizado', code: 'SESSION_EXPIRED' });
 };
-const soloAdmin = (req, res, next) => req.session.usuario?.rol === 'admin' ? next() : res.status(403).json({ error: 'Solo admin' });
 
-// ── API Login ──────────────────────────────────────────────────────────────
+const soloAdmin = (req, res, next) =>
+  req.session.usuario?.rol === 'admin'
+    ? next()
+    : res.status(403).json({ error: 'Solo admin' });
+
+// ── Login ──────────────────────────────────────────────────────────────────
 app.post('/api/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Faltan campos' });
   try {
-    const todos = await db.collection('usuarios').find({}).toArray();
-    console.log('Total usuarios:', todos.length);
-    const u = todos.find(x => x.email === email.toLowerCase());
-    console.log('Buscando:', email.toLowerCase(), '| Encontrado:', u ? 'SI' : 'NO');
+    const u = await db.collection('usuarios').findOne({ email: email.toLowerCase() });
     if (!u) return res.status(401).json({ error: 'Credenciales incorrectas' });
     const ok = bcrypt.compareSync(password, u.hash);
     if (!ok) return res.status(401).json({ error: 'Credenciales incorrectas' });
     const user = { id: u._id.toString(), nombre: u.nombre, email: u.email, rol: u.rol, ops: u.ops || [] };
     req.session.usuario = user;
-    res.json({ ok: true, usuario: user });
+    // FIX: forzar guardado de sesión antes de responder
+    req.session.save(err => {
+      if (err) {
+        console.error('Error guardando sesión:', err);
+        return res.status(500).json({ error: 'Error de sesión' });
+      }
+      res.json({ ok: true, usuario: user });
+    });
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/logout', (req, res) => { req.session.destroy(); res.json({ ok: true }); });
+app.post('/api/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) console.error('Error destruyendo sesión:', err);
+    res.clearCookie('connect.sid');
+    res.json({ ok: true });
+  });
+});
+
+// FIX: endpoint de sesión con respuesta clara
+app.get('/api/sesion', (req, res) => {
+  if (req.session && req.session.usuario) {
+    return res.json({ usuario: req.session.usuario });
+  }
+  return res.status(401).json({ error: 'Sin sesión activa', code: 'NO_SESSION' });
+});
 
 app.get('/api/token', (req, res) => {
   const authHeader = req.headers['authorization'];
@@ -178,10 +201,6 @@ app.get('/api/token', (req, res) => {
   return res.status(401).json({ error: 'Token inválido' });
 });
 
-app.get('/api/sesion', (req, res) => {
-  req.session.usuario ? res.json({ usuario: req.session.usuario }) : res.status(401).json({ error: 'Sin sesión' });
-});
-
 // ── Usuarios ───────────────────────────────────────────────────────────────
 app.get('/api/usuarios', auth, soloAdmin, async (req, res) => {
   const docs = await db.collection('usuarios').find({}, { projection: { hash: 0 } }).toArray();
@@ -190,19 +209,25 @@ app.get('/api/usuarios', auth, soloAdmin, async (req, res) => {
 
 app.post('/api/usuarios', auth, soloAdmin, async (req, res) => {
   const { nombre, email, password, rol, ops } = req.body;
+  if (!password || password.length < 4) return res.status(400).json({ error: 'Contraseña muy corta' });
   const hash = bcrypt.hashSync(password, 10);
   try {
-    const result = await db.collection('usuarios').insertOne({ nombre, email: email.toLowerCase(), hash, rol, ops: ops||[], creado: new Date().toISOString() });
+    const result = await db.collection('usuarios').insertOne({
+      nombre, email: email.toLowerCase(), hash, rol, ops: ops || [], creado: new Date().toISOString()
+    });
     res.json({ ok: true, id: result.insertedId.toString() });
   } catch(err) { res.status(400).json({ error: 'Email ya existe' }); }
 });
 
 app.put('/api/usuarios/:id', auth, soloAdmin, async (req, res) => {
   const { nombre, email, password, rol, ops } = req.body;
-  const update = { nombre, email: email.toLowerCase(), rol, ops: ops||[] };
-  if (password) update.hash = bcrypt.hashSync(password, 10);
+  const update = { nombre, email: email.toLowerCase(), rol, ops: ops || [] };
+  if (password && password.length >= 4) update.hash = bcrypt.hashSync(password, 10);
   try {
-    await db.collection('usuarios').updateOne({ _id: new ObjectId(req.params.id) }, { $set: update });
+    await db.collection('usuarios').updateOne(
+      { _id: new ObjectId(req.params.id) },
+      { $set: update }
+    );
     res.json({ ok: true });
   } catch(err) { res.status(400).json({ error: err.message }); }
 });
@@ -225,22 +250,33 @@ app.get('/api/recuentos', auth, async (req, res) => {
 
 app.post('/api/recuentos', auth, soloAdmin, async (req, res) => {
   const { nombre, fecha, almacen, articulos, operadoresIds } = req.body;
-  const nuevo = { nombre, fecha, almacen: almacen||'P01', articulos: articulos||[], comentarios: [], creadoEn: new Date().toISOString() };
+  if (!nombre) return res.status(400).json({ error: 'Nombre requerido' });
+  const nuevo = {
+    nombre, fecha, almacen: almacen || 'P01',
+    articulos: articulos || [],
+    comentarios: [],
+    creadoEn: new Date().toISOString()
+  };
   try {
     const result = await db.collection('recuentos').insertOne(nuevo);
     if (operadoresIds && operadoresIds.length) {
       for (const uid of operadoresIds) {
-        const u = await db.collection('usuarios').findOne({ _id: new ObjectId(uid) });
+        let oid;
+        try { oid = new ObjectId(uid); } catch(e) { continue; }
+        const u = await db.collection('usuarios').findOne({ _id: oid });
         if (!u) continue;
         const ops = u.ops || [];
         if (!ops.includes(nombre)) ops.push(nombre);
-        await db.collection('usuarios').updateOne({ _id: new ObjectId(uid) }, { $set: { ops } });
+        await db.collection('usuarios').updateOne({ _id: oid }, { $set: { ops } });
         enviarNotificacion(uid, req.session.usuario.id, req.session.usuario.nombre,
           'nuevo_recuento', `📋 Se te asignó el recuento "${nombre}"`);
       }
     }
     res.json({ ok: true, id: result.insertedId.toString() });
-  } catch(err) { res.status(400).json({ error: 'Ya existe un recuento con ese nombre' }); }
+  } catch(err) {
+    if (err.code === 11000) return res.status(400).json({ error: 'Ya existe un recuento con ese nombre' });
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.put('/api/recuentos/:nombre', auth, async (req, res) => {
@@ -266,17 +302,27 @@ app.delete('/api/recuentos/:nombre', auth, soloAdmin, async (req, res) => {
 
 // ── Notificaciones ─────────────────────────────────────────────────────────
 app.get('/api/notificaciones', auth, async (req, res) => {
-  const docs = await db.collection('notificaciones').find({ paraId: req.session.usuario.id }).sort({ creado: -1 }).limit(50).toArray();
+  const docs = await db.collection('notificaciones')
+    .find({ paraId: req.session.usuario.id })
+    .sort({ creado: -1 }).limit(50).toArray();
   res.json(docs.map(n => ({ ...n, id: n._id.toString() })));
 });
 
 app.put('/api/notificaciones/leer-todas', auth, async (req, res) => {
-  await db.collection('notificaciones').updateMany({ paraId: req.session.usuario.id }, { $set: { leida: true } });
+  await db.collection('notificaciones').updateMany(
+    { paraId: req.session.usuario.id },
+    { $set: { leida: true } }
+  );
   res.json({ ok: true });
 });
 
 app.put('/api/notificaciones/:id/leer', auth, async (req, res) => {
-  await db.collection('notificaciones').updateOne({ _id: new ObjectId(req.params.id), paraId: req.session.usuario.id }, { $set: { leida: true } });
+  try {
+    await db.collection('notificaciones').updateOne(
+      { _id: new ObjectId(req.params.id), paraId: req.session.usuario.id },
+      { $set: { leida: true } }
+    );
+  } catch(e) {}
   res.json({ ok: true });
 });
 
@@ -284,8 +330,13 @@ app.post('/api/notificaciones/aviso-completado', auth, async (req, res) => {
   const { recuento } = req.body;
   const admins = await db.collection('usuarios').find({ rol: 'admin' }).toArray();
   admins.forEach(admin => {
-    enviarNotificacion(admin._id.toString(), req.session.usuario.id, req.session.usuario.nombre,
-      'conteo_completado', `✅ ${req.session.usuario.nombre} completó el conteo de "${recuento}"`);
+    enviarNotificacion(
+      admin._id.toString(),
+      req.session.usuario.id,
+      req.session.usuario.nombre,
+      'conteo_completado',
+      `✅ ${req.session.usuario.nombre} completó el conteo de "${recuento}"`
+    );
   });
   res.json({ ok: true });
 });
@@ -294,7 +345,7 @@ app.post('/api/notificaciones/aviso-completado', auth, async (req, res) => {
 app.get('/api/calendario', auth, async (req, res) => {
   const docs = await db.collection('calendario').find({}).toArray();
   const obj = {};
-  docs.forEach(d => obj[d.clave] = d.texto);
+  docs.forEach(d => { obj[d.clave] = d.texto; });
   res.json(obj);
 });
 
@@ -307,6 +358,10 @@ app.put('/api/calendario', auth, soloAdmin, async (req, res) => {
   }
   res.json({ ok: true });
 });
+
+// ── Ping para mantener el servidor activo en Render ────────────────────────
+// (Render free tier duerme tras 15 min de inactividad)
+app.get('/ping', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
 // ── Frontend ───────────────────────────────────────────────────────────────
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
