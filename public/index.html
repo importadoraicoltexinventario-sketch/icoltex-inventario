@@ -1722,8 +1722,7 @@ select, input, textarea, button { font-family: var(--sans); }
       <div class="login-forgot">¿Contraseña olvidada?</div>
       <div style="text-align:center;margin-top:8px;">
         <span style="font-size:11px;color:#9ab3cc;">¿No puedes ingresar? 
-          <a href="#" onclick="event.preventDefault();localStorage.removeItem('inventario_pro_v4');location.reload();" 
-             style="color:#3b82f6;font-size:11px;">Restablecer datos</a>
+          <a href="#" onclick="event.preventDefault();location.reload();" style="color:#3b82f6;font-size:11px;">Recargar página</a>
         </span>
       </div>
 
@@ -2536,7 +2535,14 @@ async function refrescarDatos() {
 }
 
 async function saveToLocalStorage() {
+  await guardarManual();
+}
+
+async function guardarManual() {
+  if (!activeInv || !DB[activeInv]) { showToast('⚠️ No hay recuento activo.'); return; }
+  showToast('💾 Guardando...');
   await guardarRecuentoActivo();
+  if (!isDirty) showToast('✅ Guardado correctamente.');
 }
 
 let _saveTimer = null;
@@ -2702,6 +2708,11 @@ async function doLogin() {
     const ops = currentUser.ops;
     activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
     document.getElementById("selInv").value = activeInv;
+  } else {
+    if (Object.keys(DB).length > 0) {
+      activeInv = Object.keys(DB)[0];
+      document.getElementById("selInv").value = activeInv;
+    }
   }
   loadInventory();
   goView("historial");
@@ -4180,9 +4191,65 @@ function showToast(msg) {
 }
 
 // ══════════════════════════════════
-//  INIT
+//  INIT — verificar sesión al cargar
 // ══════════════════════════════════
-// Datos se cargan tras login via API
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/sesion', { credentials: 'same-origin', headers: { 'Cache-Control': 'no-cache' } });
+    if (!res.ok) return; // sin sesión → queda en login
+    const data = await res.json();
+    const user = data.usuario;
+    if (!user) return;
+
+    currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
+    role = user.rol;
+
+    document.getElementById("viewLogin").classList.add("hidden");
+    document.getElementById("viewApp").classList.remove("hidden");
+    document.body.style.cssText = "display:block;padding:0;margin:0;background:var(--bg);";
+
+    document.getElementById("sbEmail").textContent = user.email;
+    document.getElementById("sbBadge").textContent = role.toUpperCase();
+    document.getElementById("sbBadge").className = "sb-user-badge " + (role === "admin" ? "badge-admin" : "badge-operador");
+
+    if (role === "admin") {
+      document.getElementById("btnNewInv2").classList.remove("hidden");
+      document.getElementById("adminFechaEdit").classList.remove("hidden");
+      document.getElementById("adminMenu").classList.remove("hidden");
+      document.getElementById("calEditHint").classList.remove("hidden");
+      document.getElementById("addRowBar").classList.remove("hidden");
+      document.getElementById("sessionBanner").classList.add("hidden");
+      document.getElementById("fechaConteoEdit").classList.add("hidden");
+    } else {
+      document.getElementById("adminMenu").classList.add("hidden");
+      document.getElementById("btnNewInv2").classList.add("hidden");
+      document.getElementById("adminFechaEdit").classList.add("hidden");
+      document.getElementById("addRowBar").classList.add("hidden");
+      document.getElementById("sessionBanner").classList.add("hidden");
+      document.getElementById("fechaConteoEdit").classList.remove("hidden");
+    }
+
+    await loadFromStorage();
+    buildInvSelector();
+    if (role === "operador") {
+      const ops = currentUser.ops;
+      activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
+      document.getElementById("selInv").value = activeInv;
+    } else {
+      if (Object.keys(DB).length > 0) {
+        activeInv = Object.keys(DB)[0];
+        document.getElementById("selInv").value = activeInv;
+      }
+    }
+    loadInventory();
+    goView("historial");
+    sidebarOpen = true; toggleSidebar();
+    updateSaveIndicator();
+    conectarWS();
+  } catch(e) {
+    console.warn('Sin sesión activa:', e.message);
+  }
+});
 </script>
 
 </body>
