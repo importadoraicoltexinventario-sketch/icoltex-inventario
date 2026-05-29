@@ -4,6 +4,7 @@ const WebSocket = require('ws');
 const session = require('express-session');
 const MongoStore = require('connect-mongo');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 const { MongoClient, ObjectId } = require('mongodb');
 const path = require('path');
 const fs = require('fs');
@@ -13,6 +14,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 // ── MongoDB ────────────────────────────────────────────────────────────────
+const JWT_SECRET = process.env.JWT_SECRET || 'icoltex-jwt-secret-2024';
 const MONGO_URL = process.env.MONGODB_URI || 'mongodb+srv://importadoraicoltexinventario_db_user:inventario@cluster0.jnyrjvm.mongodb.net/icoltex?appName=Cluster0';
 let db;
 
@@ -55,8 +57,10 @@ app.use((req, res, next) => {
   next();
 });
 
-// Confiar en el proxy de Render para HTTPS
+// Confiar en el proxy de Render/Railway para HTTPS
 app.set('trust proxy', 1);
+
+const isProduction = process.env.NODE_ENV === 'production' || !!process.env.RENDER || !!process.env.RAILWAY_ENVIRONMENT;
 
 app.use(session({
   secret: process.env.SESSION_SECRET || 'icoltex-secret-2024',
@@ -70,8 +74,8 @@ app.use(session({
   }),
   cookie: {
     maxAge: 8 * 60 * 60 * 1000,
-    sameSite: 'none',
-    secure: true,
+    sameSite: isProduction ? 'none' : 'lax',
+    secure: isProduction,
     httpOnly: true
   }
 }));
@@ -123,7 +127,23 @@ app.use('/api', (req, res, next) => {
 });
 
 // ── Auth ───────────────────────────────────────────────────────────────────
-const auth = (req, res, next) => req.session.usuario ? next() : res.status(401).json({ error: 'No autorizado' });
+const auth = (req, res, next) => {
+  // Try session first
+  if (req.session && req.session.usuario) {
+    return next();
+  }
+  // Try JWT token from Authorization header
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.slice(7);
+      const decoded = jwt.verify(token, JWT_SECRET);
+      req.session.usuario = decoded;
+      return next();
+    } catch(e) {}
+  }
+  return res.status(401).json({ error: 'No autorizado' });
+};
 const soloAdmin = (req, res, next) => req.session.usuario?.rol === 'admin' ? next() : res.status(403).json({ error: 'Solo admin' });
 
 // ── API Login ──────────────────────────────────────────────────────────────
@@ -140,14 +160,23 @@ app.post('/api/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'Credenciales incorrectas' });
     const user = { id: u._id.toString(), nombre: u.nombre, email: u.email, rol: u.rol, ops: u.ops || [] };
     req.session.usuario = user;
-    req.session.save((err) => {
-      if (err) return res.status(500).json({ error: 'Error guardando sesión' });
-      res.json({ ok: true, usuario: user });
-    });
+    res.json({ ok: true, usuario: user });
   } catch(err) { res.status(500).json({ error: err.message }); }
 });
 
 app.post('/api/logout', (req, res) => { req.session.destroy(); res.json({ ok: true }); });
+
+app.get('/api/token', (req, res) => {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.slice(7);
+      const decoded = jwt.verify(token, JWT_SECRET);
+      return res.json({ usuario: decoded });
+    } catch(e) {}
+  }
+  return res.status(401).json({ error: 'Token inválido' });
+});
 
 app.get('/api/sesion', (req, res) => {
   req.session.usuario ? res.json({ usuario: req.session.usuario }) : res.status(401).json({ error: 'Sin sesión' });
