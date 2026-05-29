@@ -2439,7 +2439,7 @@ async function apiFetch(path, opts={}) {
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
       },
-      credentials: 'same-origin'
+      credentials: 'include'
     };
     if (opts.body) fetchOpts.body = JSON.stringify(opts.body);
     const r = await fetch(path, fetchOpts);
@@ -4373,7 +4373,7 @@ function showToast(msg, tipo) {
 // Verificar sesión activa al cargar la página (evita cerrar sesión al refrescar)
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    const res = await fetch('/api/sesion', { credentials: 'same-origin' });
+    const res = await fetch('/api/sesion', { credentials: 'include' });
     if (res.ok) {
       const data = await res.json();
       const user = data.usuario;
