@@ -1722,7 +1722,8 @@ select, input, textarea, button { font-family: var(--sans); }
       <div class="login-forgot">¿Contraseña olvidada?</div>
       <div style="text-align:center;margin-top:8px;">
         <span style="font-size:11px;color:#9ab3cc;">¿No puedes ingresar? 
-          <a href="#" onclick="event.preventDefault();location.reload();" style="color:#3b82f6;font-size:11px;">Recargar página</a>
+          <a href="#" onclick="event.preventDefault();localStorage.removeItem('inventario_pro_v4');location.reload();" 
+             style="color:#3b82f6;font-size:11px;">Restablecer datos</a>
         </span>
       </div>
 
@@ -1832,7 +1833,10 @@ select, input, textarea, button { font-family: var(--sans); }
           <div id="notifPanel" style="display:none;position:absolute;right:0;top:42px;width:320px;max-height:380px;overflow-y:auto;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(30,80,160,.15);z-index:1000;">
             <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border-radius:12px 12px 0 0;">
               <span style="font-weight:700;font-size:13px;color:#1e293b;">🔔 Notificaciones</span>
-              <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#3b82f6;background:none;border:none;cursor:pointer;font-family:var(--sans);padding:0;">Marcar leídas</button>
+              <div style="display:flex;gap:10px;">
+                <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#3b82f6;background:none;border:none;cursor:pointer;font-family:var(--sans);padding:0;">Marcar leídas</button>
+                <button onclick="eliminarTodasNotifs()" style="font-size:11px;color:#f43f5e;background:none;border:none;cursor:pointer;font-family:var(--sans);padding:0;">Limpiar todo</button>
+              </div>
             </div>
             <div id="notifList" style="padding:4px 0;">
               <div style="text-align:center;color:#94a3b8;font-size:12px;font-style:italic;padding:20px;">Sin notificaciones</div>
@@ -2457,9 +2461,18 @@ function renderNotifPanel() {
   list.innerHTML = _notifList.slice(0,20).map((n,i) => {
     const d = new Date(n.creado||Date.now());
     const t = String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-    return `<div onclick="leerNotif(${i})" style="padding:10px 16px;border-bottom:1px solid #f1f5f9;cursor:pointer;background:${n.leida?'#fff':'#f0f6ff'};transition:background .1s;" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='${n.leida?'#fff':'#f0f6ff'}'">
-      <div style="font-size:12px;color:#1e293b;font-weight:${n.leida?'400':'600'};line-height:1.4;">${n.mensaje}</div>
-      <div style="font-size:10px;color:#94a3b8;font-family:var(--mono);margin-top:3px;">${t}</div>
+    const recuentoMatch = n.mensaje && (n.mensaje.match(/"([^"]+)"/) || n.mensaje.match(/recuento\s+"?([^"]+)"?/i));
+    const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
+    const hayRecuento = recuentoNombre && DB && DB[recuentoNombre];
+    return `<div style="padding:10px 16px;border-bottom:1px solid #f1f5f9;background:${n.leida?'#fff':'#f0f6ff'};">
+      <div style="font-size:12px;color:#1e293b;font-weight:${n.leida?'400':'600'};line-height:1.4;margin-bottom:6px;">${n.mensaje}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:10px;color:#94a3b8;font-family:var(--mono);">${t}</span>
+        <div style="display:flex;gap:6px;">
+          ${hayRecuento ? `<button onclick="abrirNotifRecuento(${i})" style="font-size:10px;background:#e0f2fe;color:#0369a1;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-family:var(--sans);font-weight:600;">📦 Abrir</button>` : ''}
+          <button onclick="eliminarNotif(${i})" style="font-size:10px;background:#fef2f2;color:#f43f5e;border:none;border-radius:5px;padding:3px 8px;cursor:pointer;font-family:var(--sans);font-weight:600;">✕</button>
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
@@ -2470,6 +2483,45 @@ async function leerNotif(i) {
   await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
   n.leida = true;
   renderNotifPanel();
+}
+
+async function abrirNotifRecuento(i) {
+  const n = _notifList[i];
+  if (!n) return;
+  // Marcar como leída
+  if (!n.leida) {
+    await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
+    n.leida = true;
+  }
+  // Extraer nombre del recuento del mensaje
+  const match = n.mensaje && (n.mensaje.match(/"([^"]+)"/) || n.mensaje.match(/recuento\s+"?([^"]+)"?/i));
+  const nombre = match ? match[1] : null;
+  // Cerrar panel
+  document.getElementById('notifPanel').style.display = 'none';
+  renderNotifPanel();
+  // Ir al recuento
+  if (nombre && DB && DB[nombre]) {
+    activeInv = nombre;
+    document.getElementById("selInv").value = nombre;
+    loadInventory();
+    goView("matriz");
+    showToast('📦 Abriendo: ' + nombre);
+  }
+}
+
+async function eliminarNotif(i) {
+  const n = _notifList[i];
+  if (!n) return;
+  await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
+  _notifList.splice(i, 1);
+  renderNotifPanel();
+}
+
+async function eliminarTodasNotifs() {
+  await apiFetch('/api/notificaciones/leer-todas', {method:'PUT'}).catch(()=>{});
+  _notifList = [];
+  renderNotifPanel();
+  showToast('✅ Notificaciones limpiadas.');
 }
 
 async function marcarTodasLeidas() {
@@ -2535,14 +2587,7 @@ async function refrescarDatos() {
 }
 
 async function saveToLocalStorage() {
-  await guardarManual();
-}
-
-async function guardarManual() {
-  if (!activeInv || !DB[activeInv]) { showToast('⚠️ No hay recuento activo.'); return; }
-  showToast('💾 Guardando...');
   await guardarRecuentoActivo();
-  if (!isDirty) showToast('✅ Guardado correctamente.');
 }
 
 let _saveTimer = null;
@@ -2708,11 +2753,6 @@ async function doLogin() {
     const ops = currentUser.ops;
     activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
     document.getElementById("selInv").value = activeInv;
-  } else {
-    if (Object.keys(DB).length > 0) {
-      activeInv = Object.keys(DB)[0];
-      document.getElementById("selInv").value = activeInv;
-    }
   }
   loadInventory();
   goView("historial");
@@ -4191,65 +4231,9 @@ function showToast(msg) {
 }
 
 // ══════════════════════════════════
-//  INIT — verificar sesión al cargar
+//  INIT
 // ══════════════════════════════════
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const res = await fetch('/api/sesion', { credentials: 'same-origin', headers: { 'Cache-Control': 'no-cache' } });
-    if (!res.ok) return; // sin sesión → queda en login
-    const data = await res.json();
-    const user = data.usuario;
-    if (!user) return;
-
-    currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
-    role = user.rol;
-
-    document.getElementById("viewLogin").classList.add("hidden");
-    document.getElementById("viewApp").classList.remove("hidden");
-    document.body.style.cssText = "display:block;padding:0;margin:0;background:var(--bg);";
-
-    document.getElementById("sbEmail").textContent = user.email;
-    document.getElementById("sbBadge").textContent = role.toUpperCase();
-    document.getElementById("sbBadge").className = "sb-user-badge " + (role === "admin" ? "badge-admin" : "badge-operador");
-
-    if (role === "admin") {
-      document.getElementById("btnNewInv2").classList.remove("hidden");
-      document.getElementById("adminFechaEdit").classList.remove("hidden");
-      document.getElementById("adminMenu").classList.remove("hidden");
-      document.getElementById("calEditHint").classList.remove("hidden");
-      document.getElementById("addRowBar").classList.remove("hidden");
-      document.getElementById("sessionBanner").classList.add("hidden");
-      document.getElementById("fechaConteoEdit").classList.add("hidden");
-    } else {
-      document.getElementById("adminMenu").classList.add("hidden");
-      document.getElementById("btnNewInv2").classList.add("hidden");
-      document.getElementById("adminFechaEdit").classList.add("hidden");
-      document.getElementById("addRowBar").classList.add("hidden");
-      document.getElementById("sessionBanner").classList.add("hidden");
-      document.getElementById("fechaConteoEdit").classList.remove("hidden");
-    }
-
-    await loadFromStorage();
-    buildInvSelector();
-    if (role === "operador") {
-      const ops = currentUser.ops;
-      activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
-      document.getElementById("selInv").value = activeInv;
-    } else {
-      if (Object.keys(DB).length > 0) {
-        activeInv = Object.keys(DB)[0];
-        document.getElementById("selInv").value = activeInv;
-      }
-    }
-    loadInventory();
-    goView("historial");
-    sidebarOpen = true; toggleSidebar();
-    updateSaveIndicator();
-    conectarWS();
-  } catch(e) {
-    console.warn('Sin sesión activa:', e.message);
-  }
-});
+// Datos se cargan tras login via API
 </script>
 
 </body>
