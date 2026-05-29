@@ -2874,6 +2874,12 @@ async function doLogin() {
     const ops = currentUser.ops;
     activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
     document.getElementById("selInv").value = activeInv;
+  } else {
+    // admin: asignar primer recuento disponible
+    if (Object.keys(DB).length > 0) {
+      activeInv = Object.keys(DB)[0];
+      document.getElementById("selInv").value = activeInv;
+    }
   }
   loadInventory();
   goView("historial");
@@ -4409,6 +4415,12 @@ document.addEventListener('DOMContentLoaded', async () => {
           const ops = currentUser.ops;
           activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
           document.getElementById("selInv").value = activeInv;
+        } else {
+          // admin: asignar primer recuento disponible
+          if (Object.keys(DB).length > 0) {
+            activeInv = Object.keys(DB)[0];
+            document.getElementById("selInv").value = activeInv;
+          }
         }
         loadInventory();
         goView("historial");
