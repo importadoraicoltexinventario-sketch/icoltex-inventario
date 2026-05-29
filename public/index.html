@@ -33,7 +33,7 @@
   --text3: #8a857e;
   --mono: 'DM Mono', monospace;
   --sans: 'DM Sans', sans-serif;
-  --sb-w: 224px;
+  --sb-w: 190px;
   --radius: 8px;
   --shadow: 0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.05);
   --shadow-lg: 0 8px 32px rgba(0,0,0,.12);
@@ -294,35 +294,47 @@ select, input, textarea, button { font-family: var(--sans); }
 ══════════════════════════════ */
 .shell {
   display: flex;
-  width: 100%;
-  max-width: 1440px;
-  min-height: 88vh;
+  flex-direction: row;
+  width: 100vw;
+  min-height: 100vh;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  box-shadow: var(--shadow-lg);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   overflow: hidden;
   position: relative;
-  animation: fadeUp .3s ease;
 }
 
 /* sidebar right border */
-.sidebar { border-right: 1px solid #e8edf3; }
+
 
 /* ══════════════════════════════
    SIDEBAR
 ══════════════════════════════ */
+/* sidebar - flotante overlay */
 .sidebar {
   width: var(--sb-w);
   min-width: var(--sb-w);
-  background: var(--sb-bg);
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
-  transition: width .25s ease, min-width .25s ease;
   overflow: hidden;
   flex-shrink: 0;
+  position: absolute;
+  top: 0; left: 0;
+  height: 100%;
+  z-index: 40;
+  box-shadow: 4px 0 20px rgba(0,0,0,0.12);
+  border-right: 1px solid rgba(220,228,238,0.8);
+  transition: transform .25s cubic-bezier(.4,0,.2,1), opacity .2s ease;
 }
-.sidebar.collapsed { width: 0; min-width: 0; }
+.sidebar.collapsed {
+  transform: translateX(calc(-1 * var(--sb-w) - 4px));
+  opacity: 0;
+  pointer-events: none;
+}
 
 .sb-brand {
   padding: 20px 16px 14px;
@@ -483,6 +495,7 @@ select, input, textarea, button { font-family: var(--sans); }
   align-items: center;
   justify-content: center;
   transition: background .15s, color .15s, left .25s ease;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
 }
 .sidebar-toggle:hover { background: var(--accent); color: #fff; border-color: var(--accent); }
 .sidebar-toggle.sb-open { left: calc(var(--sb-w) + 8px); }
@@ -497,6 +510,8 @@ select, input, textarea, button { font-family: var(--sans); }
   background: var(--bg);
   overflow: hidden;
   min-width: 0;
+  width: 100%;
+  /* sidebar is absolute so main always gets full width */
 }
 
 .topbar {
@@ -512,14 +527,7 @@ select, input, textarea, button { font-family: var(--sans); }
   flex-wrap: wrap;
 }
 
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #eaf2fb;
-  overflow: hidden;
-  min-width: 0;
-}
+
 
 .topbar-title {
   font-size: 16px;
@@ -1515,22 +1523,32 @@ select, input, textarea, button { font-family: var(--sans); }
 ══════════════════════════════ */
 .toast {
   position: fixed;
-  bottom: 20px; right: 20px;
-  background: var(--sb-bg);
-  color: #f0ebe3;
-  padding: 11px 16px;
-  border-radius: 8px;
+  bottom: 24px; right: 24px;
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 12px 18px 12px 14px;
+  border-radius: 12px;
   font-size: 13px;
   font-weight: 500;
-  z-index: 200;
+  z-index: 9999;
   opacity: 0;
-  transform: translateY(10px);
-  transition: all .25s;
+  transform: translateY(16px) scale(0.97);
+  transition: all .22s cubic-bezier(.4,0,.2,1);
   pointer-events: none;
-  max-width: 320px;
-  border-left: 3px solid var(--accent);
+  max-width: 340px;
+  min-width: 200px;
+  box-shadow: 0 4px 24px rgba(0,0,0,.22);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-left: 4px solid #3b82f6;
+  letter-spacing: .1px;
+  line-height: 1.4;
 }
-.toast.show { opacity: 1; transform: translateY(0); }
+.toast.show { opacity: 1; transform: translateY(0) scale(1); }
+.toast.toast-success { border-left-color: #10b981; }
+.toast.toast-error { border-left-color: #f43f5e; }
+.toast.toast-warning { border-left-color: #f59e0b; }
 
 /* ══════════════════════════════
    RESPONSIVE
@@ -1722,8 +1740,7 @@ select, input, textarea, button { font-family: var(--sans); }
       <div class="login-forgot">¿Contraseña olvidada?</div>
       <div style="text-align:center;margin-top:8px;">
         <span style="font-size:11px;color:#9ab3cc;">¿No puedes ingresar? 
-          <a href="#" onclick="event.preventDefault();localStorage.removeItem('inventario_pro_v4');location.reload();" 
-             style="color:#3b82f6;font-size:11px;">Restablecer datos</a>
+          <a href="#" onclick="event.preventDefault();location.reload();" style="color:#3b82f6;font-size:11px;">Recargar página</a>
         </span>
       </div>
 
@@ -1812,7 +1829,7 @@ select, input, textarea, button { font-family: var(--sans); }
         <button class="btn" onclick="window.print()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir
         </button>
-        <button class="btn btn-dark" onclick="saveToLocalStorage()">
+        <button class="btn btn-dark" onclick="guardarManual()">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Guardar
         </button>
         <button class="btn" onclick="refrescarDatos()" title="Recargar datos del servidor" style="background:#e0f2fe;color:#0369a1;border:1.5px solid #7dd3fc;">
@@ -1830,10 +1847,13 @@ select, input, textarea, button { font-family: var(--sans); }
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
             <span id="notifBadge" style="display:none;position:absolute;top:-4px;right:-4px;background:#f43f5e;color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;"></span>
           </button>
-          <div id="notifPanel" style="display:none;position:absolute;right:0;top:42px;width:320px;max-height:380px;overflow-y:auto;background:#fff;border:1.5px solid #e2e8f0;border-radius:12px;box-shadow:0 8px 24px rgba(30,80,160,.15);z-index:1000;">
-            <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border-radius:12px 12px 0 0;">
-              <span style="font-weight:700;font-size:13px;color:#1e293b;">🔔 Notificaciones</span>
-              <button onclick="marcarTodasLeidas()" style="font-size:11px;color:#3b82f6;background:none;border:none;cursor:pointer;font-family:var(--sans);padding:0;">Marcar leídas</button>
+          <div id="notifPanel" style="display:none;position:absolute;right:0;top:42px;width:340px;max-height:420px;overflow-y:auto;background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 8px 32px rgba(30,80,160,.18);z-index:1000;">
+            <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#1a5fd4,#2563eb);border-radius:14px 14px 0 0;position:sticky;top:0;z-index:1;">
+              <span style="font-weight:700;font-size:13px;color:#fff;display:flex;align-items:center;gap:6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                Notificaciones
+              </span>
+              <button onclick="eliminarTodasNotifs()" style="font-size:11px;color:rgba(255,255,255,.85);background:rgba(255,255,255,.15);border:none;cursor:pointer;font-family:var(--sans);padding:3px 8px;border-radius:6px;">Limpiar todo</button>
             </div>
             <div id="notifList" style="padding:4px 0;">
               <div style="text-align:center;color:#94a3b8;font-size:12px;font-style:italic;padding:20px;">Sin notificaciones</div>
@@ -1953,7 +1973,13 @@ select, input, textarea, button { font-family: var(--sans); }
         <div id="addRowBar" class="hidden">
           <button class="btn btn-success" onclick="addNewRow()">+ Añadir línea</button>
         </div>
-      </div>
+        <!-- BOTÓN MARCAR REALIZADO - solo operadores -->
+        <div id="btnMarcarRealizadoBar" class="hidden" style="margin-top:12px;display:flex;justify-content:flex-end;">
+          <button class="btn" onclick="marcarRecuentoRealizado()" style="background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;padding:10px 22px;font-size:13px;font-weight:700;border-radius:10px;box-shadow:0 3px 12px rgba(16,185,129,.3);gap:6px;display:flex;align-items:center;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px"><polyline points="20 6 9 17 4 12"/></svg>
+            Marcar Recuento Realizado
+          </button>
+        </div>
 
       <!-- ══ HISTORIAL ══ -->
       <div id="vHistorial" class="hidden">
@@ -2051,6 +2077,18 @@ select, input, textarea, button { font-family: var(--sans); }
 
     </div><!-- /content -->
   </div><!-- /main -->
+  <!-- MODAL CONFIRM PERSONALIZADO -->
+  <div id="modalConfirm" class="hidden" style="position:fixed;inset:0;background:rgba(15,23,42,.45);backdrop-filter:blur(3px);z-index:9998;display:flex;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:16px;padding:28px 28px 22px;max-width:380px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:fadeUp .2s ease;">
+      <div id="confirmIcon" style="font-size:32px;text-align:center;margin-bottom:12px;"></div>
+      <div id="confirmTitle" style="font-size:16px;font-weight:700;color:#0f172a;text-align:center;margin-bottom:8px;"></div>
+      <div id="confirmMsg" style="font-size:13px;color:#64748b;text-align:center;line-height:1.6;margin-bottom:22px;"></div>
+      <div style="display:flex;gap:10px;justify-content:center;">
+        <button onclick="confirmCancel()" style="padding:9px 22px;border-radius:9px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);">Cancelar</button>
+        <button id="confirmOkBtn" onclick="confirmOk()" style="padding:9px 22px;border-radius:9px;border:none;background:#1a5fd4;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--sans);">Confirmar</button>
+      </div>
+    </div>
+  </div>
 </div><!-- /shell -->
 
 <!-- MODAL NUEVO INVENTARIO -->
@@ -2351,6 +2389,33 @@ let nextUserId = 10;
 let isDirty = false;
 let pendingImportData = null;
 
+// ── MODAL CONFIRM PERSONALIZADO ──
+let _confirmResolve = null;
+function appConfirm(icono, titulo, mensaje, colorBtn) {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById("confirmIcon").innerHTML = icono;
+    document.getElementById("confirmTitle").textContent = titulo;
+    document.getElementById("confirmMsg").textContent = mensaje;
+    const btn = document.getElementById("confirmOkBtn");
+    btn.style.background = colorBtn || "#1a5fd4";
+    document.getElementById("modalConfirm").classList.remove("hidden");
+    document.getElementById("modalConfirm").style.display = "flex";
+  });
+}
+function confirmOk() {
+  document.getElementById("modalConfirm").classList.add("hidden");
+  document.getElementById("modalConfirm").style.display = "";
+  if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
+}
+function confirmCancel() {
+  document.getElementById("modalConfirm").classList.add("hidden");
+  document.getElementById("modalConfirm").style.display = "";
+  if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+}
+
+
+
 const LS_KEY = "inventario_pro_v4";
 
 // ══════════════════════════════════
@@ -2368,7 +2433,11 @@ async function apiFetch(path, opts={}) {
   try {
     const fetchOpts = {
       method: opts.method || 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
+      },
       credentials: 'same-origin'
     };
     if (opts.body) fetchOpts.body = JSON.stringify(opts.body);
@@ -2402,6 +2471,10 @@ function conectarWS() {
         _notifList.unshift(msg.datos);
         renderNotifPanel();
         showToast('🔔 ' + msg.datos.mensaje);
+        // Notificación push del navegador
+        const recuentoMatch = msg.datos.mensaje && (msg.datos.mensaje.match(/"([^"]+)"/) || msg.datos.mensaje.match(/recuento\s+"?([^"]+)"?/i));
+        const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
+        mostrarNotifPush(msg.datos.mensaje, recuentoNombre);
       } else if (msg.tipo === 'recuento_actualizado') {
         // Recargar datos del recuento actualizado en tiempo real
         actualizarRecuentoEnVivo(msg.nombre);
@@ -2452,31 +2525,68 @@ function renderNotifPanel() {
     badge.style.display = 'none';
   }
   if (_notifList.length === 0) {
-    list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:12px;font-style:italic;padding:20px;">Sin notificaciones</div>';
+    list.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:13px;font-style:italic;padding:28px 16px;">✅ Sin notificaciones pendientes</div>';
     return;
   }
-  list.innerHTML = _notifList.slice(0,20).map((n,i) => {
+  list.innerHTML = _notifList.slice(0,30).map((n,i) => {
     const d = new Date(n.creado||Date.now());
     const t = String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
-    return `<div onclick="leerNotif(${i})" style="padding:10px 16px;border-bottom:1px solid #f1f5f9;cursor:pointer;background:${n.leida?'#fff':'#f0f6ff'};transition:background .1s;" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='${n.leida?'#fff':'#f0f6ff'}'">
-      <div style="font-size:12px;color:#1e293b;font-weight:${n.leida?'400':'600'};line-height:1.4;">${n.mensaje}</div>
-      <div style="font-size:10px;color:#94a3b8;font-family:var(--mono);margin-top:3px;">${t}</div>
+    // Extraer nombre de recuento del mensaje
+    const recuentoMatch = n.mensaje && (n.mensaje.match(/"([^"]+)"/) || n.mensaje.match(/recuento\s+"?([^"]+)"?/i));
+    const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
+    const tieneRecuento = recuentoNombre && DB && DB[recuentoNombre];
+    const bgColor = n.leida ? '#fff' : '#f0f9ff';
+    const borderLeft = n.leida ? '3px solid #e2e8f0' : '3px solid #1a5fd4';
+    return `<div onclick="abrirNotif(${i})" style="padding:11px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;background:${bgColor};border-left:${borderLeft};transition:background .1s;display:flex;align-items:flex-start;gap:10px;" onmouseover="this.style.background='#e0f2fe'" onmouseout="this.style.background='${bgColor}'">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;color:#1e293b;font-weight:${n.leida?'400':'600'};line-height:1.4;">${n.mensaje}</div>
+        <div style="font-size:10px;color:#94a3b8;font-family:var(--mono);margin-top:3px;">${t}</div>
+        ${tieneRecuento ? `<div style="margin-top:5px;font-size:10px;font-weight:700;color:#1a5fd4;background:#eff6ff;border:1px solid #bfdbfe;padding:2px 8px;border-radius:6px;display:inline-block;">👆 Clic para ir al recuento</div>` : ''}
+      </div>
+      <button onclick="event.stopPropagation();eliminarNotif(${i})" style="background:none;border:none;cursor:pointer;color:#cbd5e1;font-size:16px;padding:0 2px;line-height:1;flex-shrink:0;" title="Eliminar">×</button>
     </div>`;
   }).join('');
 }
 
-async function leerNotif(i) {
+async function abrirNotif(i) {
   const n = _notifList[i];
-  if (!n || n.leida) return;
+  if (!n) return;
+  // Marcar como leída en servidor
+  if (!n.leida) {
+    await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
+    n.leida = true;
+  }
+  // Extraer nombre de recuento
+  const recuentoMatch = n.mensaje && (n.mensaje.match(/"([^"]+)"/) || n.mensaje.match(/recuento\s+"?([^"]+)"?/i));
+  const recuentoNombre = recuentoMatch ? recuentoMatch[1] : null;
+  // Eliminar la notificación de la lista (estilo WhatsApp)
+  _notifList.splice(i, 1);
+  renderNotifPanel();
+  // Cerrar panel
+  document.getElementById('notifPanel').style.display = 'none';
+  // Ir al recuento si existe
+  if (recuentoNombre && DB && DB[recuentoNombre]) {
+    activeInv = recuentoNombre;
+    document.getElementById("selInv").value = recuentoNombre;
+    loadInventory();
+    goView("matriz");
+    showToast('📦 Abriendo: ' + recuentoNombre);
+  }
+}
+
+async function eliminarNotif(i) {
+  const n = _notifList[i];
+  if (!n) return;
   await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
-  n.leida = true;
+  _notifList.splice(i, 1);
   renderNotifPanel();
 }
 
-async function marcarTodasLeidas() {
+async function eliminarTodasNotifs() {
   await apiFetch('/api/notificaciones/leer-todas', {method:'PUT'}).catch(()=>{});
-  _notifList.forEach(n => n.leida = true);
+  _notifList = [];
   renderNotifPanel();
+  showToast('✅ Notificaciones limpiadas.');
 }
 
 // Para que el operador avise al admin que terminó
@@ -2485,8 +2595,49 @@ async function avisarCompletado(recuento) {
   showToast('✅ Admin notificado que completaste el conteo.');
 }
 
-function resetStorage() {
-  if (!confirm('¿Reiniciar todos los datos? (Esta acción no se puede deshacer)')) return;
+async function marcarRecuentoRealizado() {
+  if (!activeInv) { showToast('⚠️ No hay recuento activo.'); return; }
+  const _mrr = await appConfirm('(OK)', 'Marcar como Realizado', `¿Marcar el recuento "${activeInv}" como realizado? Se guardará y se notificará al administrador.`, '#10b981');
+  if (!_mrr) return;
+  // Guardar primero
+  await guardarRecuentoActivo();
+  // Notificar al admin
+  await apiFetch('/api/notificaciones/aviso-completado', {method:'POST', body:{recuento: activeInv}}).catch(()=>{});
+  showToast('✅ Recuento marcado como realizado. Admin notificado.');
+}
+
+// ── NOTIFICACIONES PUSH (estilo WhatsApp) ──
+async function solicitarPermisoPush() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    await Notification.requestPermission();
+  }
+}
+
+function mostrarNotifPush(mensaje, recuentoNombre) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const notif = new Notification('🔔 ICOLTEX Inventario', {
+    body: mensaje,
+    icon: 'https://icol-inventario.onrender.com/favicon.ico',
+    badge: 'https://icol-inventario.onrender.com/favicon.ico',
+    tag: 'icoltex-notif',
+    requireInteraction: true
+  });
+  notif.onclick = () => {
+    window.focus();
+    if (recuentoNombre && DB && DB[recuentoNombre]) {
+      activeInv = recuentoNombre;
+      document.getElementById("selInv").value = recuentoNombre;
+      loadInventory();
+      goView("matriz");
+    }
+    notif.close();
+  };
+}
+
+async function resetStorage() {
+  const _rst = await appConfirm('(!)', 'Reiniciar datos', '¿Reiniciar todos los datos? Esta acción no se puede deshacer.', '#f43f5e');
+  if (!_rst) return;
   showToast('⚠️ Función deshabilitada en modo servidor.');
 }
 
@@ -2528,11 +2679,21 @@ async function loadFromStorage() {
 
 async function refrescarDatos() {
   showToast('🔄 Recargando datos...');
-  await loadFromStorage();
-  buildInvSelector();
-  if (activeInv && DB[activeInv]) loadInventory();
-  renderHistory();
-  showToast('✅ Datos actualizados.');
+  try {
+    await loadFromStorage();
+    buildInvSelector();
+    if (activeInv && DB[activeInv]) loadInventory();
+    else if (Object.keys(DB).length > 0) {
+      activeInv = Object.keys(DB)[0];
+      document.getElementById("selInv").value = activeInv;
+      loadInventory();
+    }
+    renderHistory();
+    renderNotifPanel();
+    showToast('✅ Datos actualizados.');
+  } catch(e) {
+    showToast('⚠️ Error al recargar: ' + e.message);
+  }
 }
 
 async function saveToLocalStorage() {
@@ -2562,7 +2723,16 @@ async function guardarRecuentoActivo() {
     updateSaveIndicator();
   } catch(e) {
     showToast('⚠️ Error guardando: ' + e.message);
+    isDirty = true;
+    updateSaveIndicator();
   }
+}
+
+async function guardarManual() {
+  if (!activeInv || !DB[activeInv]) { showToast('⚠️ No hay recuento activo.'); return; }
+  showToast('💾 Guardando...');
+  await guardarRecuentoActivo();
+  if (!isDirty) showToast('✅ Guardado correctamente.');
 }
 
 function updateSaveIndicator() {
@@ -2625,9 +2795,10 @@ function handleImport(event) {
   reader.readAsText(file);
 }
 
-function doImport() {
+async function doImport() {
   if (!pendingImportData) return;
-  if (!confirm("¿Reemplazar TODOS los datos actuales con los del archivo? Se perderán cambios no guardados.")) return;
+  const _imp = await appConfirm('(F)', 'Importar datos', '¿Reemplazar TODOS los datos actuales con los del archivo? Se perderán cambios no guardados.', '#f59e0b');
+  if (!_imp) return;
   DB        = pendingImportData.DB;
   USERS     = pendingImportData.USERS;
   SCHEDULE  = pendingImportData.SCHEDULE  || JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
@@ -2672,7 +2843,7 @@ async function doLogin() {
 
   document.getElementById("viewLogin").classList.add("hidden");
   document.getElementById("viewApp").classList.remove("hidden");
-  document.body.style.cssText = "display:block;padding:0;background:var(--bg);";
+  document.body.style.cssText = "display:block;padding:0;margin:0;background:var(--bg);";
 
   document.getElementById("sbEmail").textContent = user.email;
   document.getElementById("sbBadge").textContent = role.toUpperCase();
@@ -2693,6 +2864,7 @@ async function doLogin() {
     document.getElementById("addRowBar").classList.add("hidden");
     document.getElementById("sessionBanner").classList.add("hidden");
     document.getElementById("fechaConteoEdit").classList.remove("hidden");
+    document.getElementById("btnMarcarRealizadoBar").classList.remove("hidden");
   }
 
   await loadFromStorage();
@@ -2708,10 +2880,14 @@ async function doLogin() {
   sidebarOpen = true; toggleSidebar();
   updateSaveIndicator();
   conectarWS();
+  solicitarPermisoPush();
 }
 
 async function doLogout() {
-  if (isDirty && !confirm("Tienes cambios sin guardar. ¿Salir de todas formas?")) return;
+  if (isDirty) {
+    const _lo = await appConfirm('(!)', 'Cambios sin guardar', 'Tienes cambios sin guardar. ¿Salir de todas formas?', '#f59e0b');
+    if (!_lo) return;
+  }
   await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
   if (_ws) { _ws.onclose = null; _ws.close(); _ws = null; }
   document.getElementById("viewApp").classList.add("hidden");
@@ -3082,10 +3258,11 @@ function updateContado(i) {
   markDirty();
 }
 
-function deleteRow(e, i) {
+async function deleteRow(e, i) {
   e.stopPropagation();
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar filas."); return; }
-  if (!confirm("¿Eliminar esta referencia?")) return;
+  const _dr = await appConfirm('(X)', 'Eliminar referencia', '¿Eliminar esta referencia? Esta acción no se puede deshacer.', '#f43f5e');
+  if (!_dr) return;
   DB[activeInv].articulos.splice(i, 1);
   markDirty();
   clearEntry(); renderMatrix();
@@ -3147,7 +3324,7 @@ function renderHistory() {
 
   keys.forEach(name => {
     const inv = DB[name];
-    const arts = inv.articulos;
+    const arts = (inv.articulos || []).map(a => ({...a, fisico: Number(a.fisico)||0, sap: Number(a.sap)||0}));
     const total      = arts.length;
     const exactos    = arts.filter(a => Math.abs(a.fisico - a.sap) <= 0.001 && (a.fisico > 0 || a._contado)).length;
     const conDif     = arts.filter(a => Math.abs(a.fisico - a.sap) > 0.001).length;
@@ -3218,7 +3395,8 @@ function switchToInv(name) {
 
 async function deleteInventory(name) {
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar recuentos."); return; }
-  if (!confirm(`¿Eliminar el recuento "${name}"? No se puede deshacer.`)) return;
+  const _di = await appConfirm('(X)', 'Eliminar Recuento', `¿Eliminar el recuento "${name}"? Esta acción no se puede deshacer.`, '#f43f5e');
+  if (!_di) return;
   try {
     await apiFetch('/api/recuentos/' + encodeURIComponent(name), { method: 'DELETE' });
     delete DB[name];
@@ -3885,12 +4063,13 @@ function parsePasteData(text) {
   }).filter(r => r.codigo);
 }
 
-function confirmPaste() {
+async function confirmPaste() {
   if (role !== "admin") { showToast("⛔ Solo el administrador puede pegar datos."); return; }
   const text = document.getElementById("pasteArea").value;
   const rows = parsePasteData(text);
   if (!rows.length) { showToast("⚠️ No se detectaron datos válidos."); return; }
-  if (!confirm(`¿Añadir ${rows.length} fila${rows.length>1?"s":""} al recuento "${activeInv}"?`)) return;
+  const _cp = await appConfirm('(C)', 'Pegar datos', `¿Añadir ${rows.length} fila${rows.length>1?"s":""} al recuento "${activeInv}"?`);
+  if (!_cp) return;
   rows.forEach(r => DB[activeInv].articulos.push(r));
   markDirty();
   renderMatrix();
@@ -4002,7 +4181,7 @@ function renderCalendar() {
   }
 }
 
-function editCalDay(key, cell) {
+async function editCalDay(key, cell) {
   if (role !== "admin") return;
   const existing = CAL_TEXTS[key]||"";
   const textEl = cell.querySelector(".day-text");
@@ -4138,7 +4317,8 @@ async function saveUser() {
 
 async function deleteUser(id) {
   if (String(id) === String(currentUser.id)) { alert("No puedes eliminarte a ti mismo."); return; }
-  if (!confirm("¿Eliminar este usuario?")) return;
+  const _du = await appConfirm('(U)', 'Eliminar Usuario', '¿Eliminar este usuario? Esta acción no se puede deshacer.', '#f43f5e');
+  if (!_du) return;
   try {
     await apiFetch('/api/usuarios/' + id, { method: 'DELETE' });
     // Recargar lista desde servidor
@@ -4171,18 +4351,77 @@ function exportCSV() {
 //  TOAST
 // ══════════════════════════════════
 let toastTimer;
-function showToast(msg) {
+function showToast(msg, tipo) {
   const t = document.getElementById("toast");
   t.textContent = msg;
+  t.className = "toast";
+  if (tipo) { t.classList.add("toast-" + tipo); }
+  else if (msg.includes("✅") || msg.includes("Guardado") || msg.includes("correcto")) { t.classList.add("toast-success"); }
+  else if (msg.includes("❌") || msg.includes("Error") || msg.includes("error")) { t.classList.add("toast-error"); }
+  else if (msg.includes("⚠️") || msg.includes("Sin guardar")) { t.classList.add("toast-warning"); }
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
 }
+
+
 
 // ══════════════════════════════════
 //  INIT
 // ══════════════════════════════════
-// Datos se cargan tras login via API
+// Verificar sesión activa al cargar la página (evita cerrar sesión al refrescar)
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/sesion', { credentials: 'same-origin' });
+    if (res.ok) {
+      const data = await res.json();
+      const user = data.usuario;
+      if (user) {
+        currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
+        role = user.rol;
+        document.getElementById("viewLogin").classList.add("hidden");
+        document.getElementById("viewApp").classList.remove("hidden");
+        document.body.style.cssText = "display:block;padding:0;margin:0;background:var(--bg);";
+        document.getElementById("sbEmail").textContent = user.email;
+        document.getElementById("sbBadge").textContent = role.toUpperCase();
+        document.getElementById("sbBadge").className = "sb-user-badge " + (role === "admin" ? "badge-admin" : "badge-operador");
+        if (role === "admin") {
+          document.getElementById("btnNewInv2").classList.remove("hidden");
+          document.getElementById("adminFechaEdit").classList.remove("hidden");
+          document.getElementById("adminMenu").classList.remove("hidden");
+          document.getElementById("calEditHint").classList.remove("hidden");
+          document.getElementById("addRowBar").classList.remove("hidden");
+          document.getElementById("sessionBanner").classList.add("hidden");
+          document.getElementById("fechaConteoEdit").classList.add("hidden");
+          document.getElementById("btnMarcarRealizadoBar").classList.add("hidden");
+        } else {
+          document.getElementById("adminMenu").classList.add("hidden");
+          document.getElementById("btnNewInv2").classList.add("hidden");
+          document.getElementById("adminFechaEdit").classList.add("hidden");
+          document.getElementById("addRowBar").classList.add("hidden");
+          document.getElementById("sessionBanner").classList.add("hidden");
+          document.getElementById("fechaConteoEdit").classList.remove("hidden");
+          document.getElementById("btnMarcarRealizadoBar").classList.remove("hidden");
+        }
+        await loadFromStorage();
+        buildInvSelector();
+        if (role === "operador") {
+          const ops = currentUser.ops;
+          activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
+          document.getElementById("selInv").value = activeInv;
+        }
+        loadInventory();
+        goView("historial");
+        sidebarOpen = true; toggleSidebar();
+        updateSaveIndicator();
+        conectarWS();
+        solicitarPermisoPush();
+      }
+    }
+  } catch(e) {
+    console.log('Sin sesión activa.');
+  }
+});
 </script>
 
 </body>
