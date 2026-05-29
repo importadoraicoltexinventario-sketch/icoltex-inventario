@@ -2432,16 +2432,14 @@ function apiUrl(path) { return path; }
 
 async function apiFetch(path, opts={}) {
   try {
-    const token = localStorage.getItem('icoltex_token');
     const fetchOpts = {
       method: opts.method || 'GET',
       headers: {
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+        'Pragma': 'no-cache'
       },
-      credentials: 'include'
+      credentials: 'same-origin'
     };
     if (opts.body) fetchOpts.body = JSON.stringify(opts.body);
     const r = await fetch(path, fetchOpts);
@@ -2835,7 +2833,6 @@ async function doLogin() {
   let user;
   try {
     const res = await apiFetch('/api/login', { method: 'POST', body: { email: em, password: pw } });
-      if (res.token) localStorage.setItem('icoltex_token', res.token);
     user = res.usuario;
   } catch(e) {
     showToast("❌ Credenciales incorrectas.");
@@ -2888,7 +2885,6 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  localStorage.removeItem('icoltex_token');
   if (isDirty) {
     const _lo = await appConfirm('(!)', 'Cambios sin guardar', 'Tienes cambios sin guardar. ¿Salir de todas formas?', '#f59e0b');
     if (!_lo) return;
@@ -4209,6 +4205,7 @@ async function editCalDay(key, cell) {
 
 function renderScheduleTable() {
   const tbody = document.getElementById("schedBody");
+  if (!tbody) return;
   tbody.innerHTML = "";
   SCHEDULE.forEach(row => {
     const dot   = row.estado==="done"?"dot-done":row.estado==="active"?"dot-active":"dot-pend";
@@ -4377,11 +4374,7 @@ function showToast(msg, tipo) {
 // Verificar sesión activa al cargar la página (evita cerrar sesión al refrescar)
 document.addEventListener('DOMContentLoaded', async () => {
   try {
-    const _tok = localStorage.getItem('icoltex_token');
-    const res = await fetch(_tok ? '/api/token' : '/api/sesion', {
-      credentials: 'include',
-      headers: _tok ? { 'Authorization': 'Bearer ' + _tok } : {}
-    });
+    const res = await fetch('/api/sesion', { credentials: 'same-origin' });
     if (res.ok) {
       const data = await res.json();
       const user = data.usuario;
