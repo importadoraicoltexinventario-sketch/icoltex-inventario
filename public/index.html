@@ -1950,7 +1950,15 @@ select, input, textarea, button { font-family: var(--sans); }
           </span>
           <span style="font-size:11px;color:var(--text3);" id="lblInvName">—</span>
         </div>
-        <div class="matrix-title-bar">Registro de Diferencias</div>
+        <div class="matrix-title-bar" style="display:flex;align-items:center;justify-content:space-between;padding:6px 16px;">
+          <span>Registro de Diferencias</span>
+          <button id="btnVistaRapida" onclick="toggleVistaRapida()"
+            style="font-size:10px;font-weight:700;letter-spacing:1px;font-family:var(--mono);
+                   background:rgba(255,255,255,0.15);color:#fff;border:1px solid rgba(255,255,255,0.4);
+                   border-radius:5px;padding:3px 10px;cursor:pointer;">
+            ⚡ VISTA RÁPIDA
+          </button>
+        </div>
         <table class="matrix-table" id="matrizTable" oncontextmenu="showTableCtxMenu(event)">
           <thead>
             <tr>
@@ -3065,6 +3073,8 @@ function renderMatrix() {
   const tdDif = document.getElementById("totDif");
   tdDif.textContent = fmt(totDif);
   tdDif.className = "tot-value tot-dif" + (totDif < 0 ? " cell-neg" : totDif > 0 ? " cell-pos" : "");
+  // Aplicar filtro de vista rápida si está activo
+  if (_vistaRapida) aplicarFiltroVista();
 }
 
 // ══════════════════════════════════
@@ -3192,6 +3202,29 @@ function selectRowHighlight(i) {
 }
 
 let _editingActive = false;
+let _vistaRapida = false;
+
+// ── Vista Rápida: oculta filas con físico=0, sap=0, diferencia=0 ──
+function toggleVistaRapida() {
+  _vistaRapida = !_vistaRapida;
+  const btn = document.getElementById("btnVistaRapida");
+  btn.textContent = _vistaRapida ? "📋 VISTA COMPLETA" : "⚡ VISTA RÁPIDA";
+  btn.style.background = _vistaRapida ? "rgba(255,255,255,0.35)" : "rgba(255,255,255,0.15)";
+  aplicarFiltroVista();
+}
+
+function aplicarFiltroVista() {
+  if (!DB[activeInv]) return;
+  const rows = document.querySelectorAll("#matrizBody tr");
+  const arts = DB[activeInv].articulos;
+  rows.forEach((tr, i) => {
+    if (!_vistaRapida) { tr.style.display = ""; return; }
+    const art = arts[i];
+    if (!art) return;
+    const ocultar = art.fisico === 0 && art.sap === 0 && (art.fisico - art.sap) === 0;
+    tr.style.display = ocultar ? "none" : "";
+  });
+}
 
 // onEntryBtn: alterna entre Editar y Actualizar
 function onEntryBtn() {
