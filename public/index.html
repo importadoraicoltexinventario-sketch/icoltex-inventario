@@ -2337,7 +2337,7 @@ select, input, textarea, button { font-family: var(--sans); }
       </table>
     </div>
     <!-- Footer totales -->
-    <div id="vrFooter" style="padding:10px 20px;background:#f8fafc;border-top:2px solid #e2e8f0;display:flex;gap:24px;justify-content:flex-end;font-family:var(--mono);font-size:12px;font-weight:700;"></div>
+    <div id="vrFooter" style="font-family:var(--mono);font-size:12px;"></div>
   </div>
 </div>
 
@@ -3253,7 +3253,7 @@ function abrirVistaRapida() {
     const dif = a.fisico - a.sap;
     tF += a.fisico; tS += a.sap;
     const difClass = dif < 0 ? "color:#ef4444;font-weight:700;" : dif > 0 ? "color:#16a34a;font-weight:700;" : "color:#94a3b8;";
-    const bg = dif < 0 ? "background:#fff1f2;" : dif > 0 ? "background:#f0fdf4;" : "";
+    const bg = dif < 0 ? "background:#fff1f2;" : dif > 0 ? "background:#f0fdf4;" : "background:#ffffff;";
     return `<tr style="border-bottom:1px solid #f1f5f9;${bg}">
       <td style="padding:8px 12px;font-family:var(--mono);font-size:11px;">${esc(a.codigo)}</td>
       <td style="padding:8px 12px;font-size:12px;">${esc(a.descripcion)}</td>
@@ -3267,9 +3267,20 @@ function abrirVistaRapida() {
   const totDif = tF - tS;
   const difColor = totDif < 0 ? "#ef4444" : totDif > 0 ? "#16a34a" : "#64748b";
   document.getElementById("vrFooter").innerHTML = `
-    <span>TOTAL FÍSICO: <span style="color:#1e40af;">${fmt(tF)}</span></span>
-    <span>TOTAL SAP: <span style="color:#1e40af;">${fmt(tS)}</span></span>
-    <span>DIFERENCIA: <span style="color:${difColor};">${fmt(totDif)}</span></span>`;
+    <table style="width:100%;border-collapse:collapse;">
+      <tr>
+        <td colspan="5" style="text-align:right;font-size:10px;font-weight:700;color:#5a7a9a;letter-spacing:1px;padding:10px 12px;background:#f0f4fa;border-top:2.5px solid #dde8f5;">TOTAL DE FÍSICO:</td>
+        <td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:14px;padding:10px 12px;background:#f0f4fa;border-top:2.5px solid #dde8f5;">${fmt(tF)}</td>
+      </tr>
+      <tr>
+        <td colspan="5" style="text-align:right;font-size:10px;font-weight:700;color:#5a7a9a;letter-spacing:1px;padding:10px 12px;background:#f0f4fa;border-top:1px solid #dde8f5;">TOTAL DE SAP:</td>
+        <td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:14px;padding:10px 12px;background:#f0f4fa;border-top:1px solid #dde8f5;">${fmt(tS)}</td>
+      </tr>
+      <tr>
+        <td colspan="5" style="text-align:right;font-size:10px;font-weight:700;color:#5a7a9a;letter-spacing:1px;padding:10px 12px;background:#f0f4fa;border-top:1px solid #dde8f5;">DIFERENCIA:</td>
+        <td style="text-align:right;font-family:var(--mono);font-weight:700;font-size:14px;padding:10px 12px;background:${totDif<0?'#fff1f0':totDif>0?'#edfaf4':'#f0f4fa'};border-top:1px solid #dde8f5;color:${difColor};">${fmt(totDif)}</td>
+      </tr>
+    </table>`;
 
   document.getElementById("modalVistaRapida").classList.remove("hidden");
 }
