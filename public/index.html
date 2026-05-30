@@ -652,14 +652,28 @@ select, input, textarea, button { font-family: var(--sans); }
 }
 .entry-label {
   font-family: var(--mono);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text3);
-  letter-spacing: 1.5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #1e40af;
+  letter-spacing: 1.2px;
   text-transform: uppercase;
   margin-bottom: 12px;
+  background: #eff6ff;
+  border-left: 3px solid #3b82f6;
+  padding: 7px 12px;
+  border-radius: 0 6px 6px 0;
 }
-.entry-label strong { color: var(--accent); }
+.entry-label strong { color: #dc2626; font-size: 12px; }
+.entry-label.idle { color: var(--text3); background: transparent; border-left-color: var(--border); font-weight: 600; }
+.btn-edit-row {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; font-size: 11px; font-weight: 600;
+  border: 1.5px solid #3b82f6; border-radius: 6px;
+  background: #eff6ff; color: #1d4ed8;
+  cursor: pointer; font-family: var(--sans);
+  transition: background .15s;
+}
+.btn-edit-row:hover { background: #dbeafe; }
 
 .entry-form {
   display: grid;
@@ -1876,7 +1890,7 @@ select, input, textarea, button { font-family: var(--sans); }
         </div>
 
         <div class="entry-panel">
-          <div class="entry-label" id="entryLabel">Selecciona una fila para capturar el conteo físico</div>
+          <div class="entry-label idle" id="entryLabel">Selecciona una fila para capturar el conteo físico</div>
           <div class="entry-form">
 
             <div class="ef-group">
@@ -3016,26 +3030,31 @@ function renderMatrix() {
 
     if (isAdmin) {
       tbody.insertAdjacentHTML("beforeend", `
-        <tr class="selectable ${selClass}" onclick="selectRow(${i})">
+        <tr class="selectable ${selClass}" onclick="selectRowHighlight(${i})">
           <td><input class="input-cell" value="${esc(item.codigo)}" onchange="updateCell(${i},'codigo',this.value)" onclick="event.stopPropagation()"></td>
           <td><input class="input-cell" style="width:100%" value="${esc(item.descripcion)}" onchange="updateCell(${i},'descripcion',this.value.toUpperCase())" onclick="event.stopPropagation()"></td>
           <td class="text-c"><input class="input-cell" style="width:52px;text-align:center" value="${esc(item.almacen)}" onchange="updateCell(${i},'almacen',this.value)" onclick="event.stopPropagation()"></td>
           <td class="text-r"><input class="input-cell" type="number" step="0.001" style="width:80px;text-align:right" value="${fisicoVal}" placeholder="pend." onchange="updateCell(${i},'fisico',parseFloat(this.value)||0);updateContado(${i})" onclick="event.stopPropagation()" ${histTip}></td>
           <td class="text-r"><input class="input-cell" type="number" step="0.01" style="width:80px;text-align:right" value="${item.sap}" onchange="updateCell(${i},'sap',parseFloat(this.value)||0)" onclick="event.stopPropagation()"></td>
           <td class="text-r ${difClass}">${fmt(dif)}</td>
-          <td class="text-c"><button class="btn-icon" onclick="deleteRow(event,${i})" title="Eliminar fila">🗑</button></td>
+          <td class="text-c" style="white-space:nowrap;">
+            <button class="btn-edit-row" onclick="event.stopPropagation();selectRow(${i})" title="Editar fila">✏️ Editar</button>
+            <button class="btn-icon" onclick="event.stopPropagation();deleteRow(event,${i})" title="Eliminar fila" style="margin-left:4px;">🗑</button>
+          </td>
         </tr>
       `);
     } else {
       tbody.insertAdjacentHTML("beforeend", `
-        <tr class="selectable ${selClass}" onclick="selectRow(${i})">
+        <tr class="selectable ${selClass}" onclick="selectRowHighlight(${i})">
           <td style="font-family:var(--mono);font-size:11px;">${esc(item.codigo)}</td>
           <td style="font-size:12px;">${esc(item.descripcion)}</td>
           <td class="text-c" style="font-size:12px;">${esc(item.almacen)}</td>
           <td class="text-r"><input class="input-cell" type="number" step="0.001" style="width:80px;text-align:right" value="${fisicoVal}" placeholder="pend." onchange="updateCell(${i},'fisico',parseFloat(this.value)||0);updateContado(${i})" onclick="event.stopPropagation()" ${histTip}></td>
           <td class="text-r" style="font-family:var(--mono);font-size:12px;">${fmt(item.sap)}</td>
           <td class="text-r ${difClass}">${fmt(dif)}</td>
-          <td class="text-c" style="color:var(--text3);font-size:11px;">—</td>
+          <td class="text-c" style="white-space:nowrap;">
+            <button class="btn-edit-row" onclick="event.stopPropagation();selectRow(${i})" title="Editar fila">✏️ Editar</button>
+          </td>
         </tr>
       `);
     }
@@ -3155,7 +3174,15 @@ function onFechaConteoChange(val) {
   // Solo actualiza la variable temporal; se guarda al hacer Actualizar
 }
 
-// ── selectRow actualizado ──
+// ── selectRowHighlight: solo resalta la fila sin activar formulario ──
+function selectRowHighlight(i) {
+  selectedRow = i;
+  document.querySelectorAll("#matrizBody tr").forEach((tr, idx) => {
+    tr.classList.toggle("row-selected", idx === i);
+  });
+}
+
+// ── selectRow: activa formulario para editar ──
 function selectRow(i) {
   selectedRow = i;
   const item = DB[activeInv].articulos[i];
@@ -3189,12 +3216,18 @@ function selectRow(i) {
 
   const btn = document.getElementById("btnSubmitEntry");
   btn.disabled = false; btn.className = "btn-submit-entry active";
-  document.getElementById("entryLabel").innerHTML = `Editando: <strong>${esc(item.codigo)}</strong> — ${esc(item.descripcion)}`;
+  const lbl = document.getElementById("entryLabel");
+  lbl.classList.remove("idle");
+  lbl.innerHTML = `EDITANDO: <strong>${esc(item.codigo)}</strong> — ${esc(item.descripcion)}`;
 }
 
 function submitEntry() {
   if (selectedRow === null) return;
   const savedRow = selectedRow;
+  // Restaurar label a idle
+  const lbl = document.getElementById("entryLabel");
+  lbl.classList.add("idle");
+  lbl.textContent = "Selecciona una fila para capturar el conteo físico";
 
   // Capturar expresión pendiente en el input si existe
   const inputVal = document.getElementById("eCalcInput").value.trim();
