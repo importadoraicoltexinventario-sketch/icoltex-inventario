@@ -2262,6 +2262,19 @@ select, input, textarea, button { font-family: var(--sans); }
   </div>
 </div>
 
+<!-- MODAL CONFIRM PERSONALIZADO -->
+<div id="modalConfirm" class="modal-bg hidden" style="z-index:999;">
+  <div class="modal-box" style="max-width:380px;text-align:center;">
+    <div id="confirmIcon" style="font-size:36px;margin-bottom:10px;">⚠️</div>
+    <h3 id="confirmTitle" style="margin:0 0 8px;font-size:16px;color:var(--text1);">¿Estás seguro?</h3>
+    <p id="confirmMsg" style="margin:0 0 20px;font-size:13px;color:var(--text2);line-height:1.5;"></p>
+    <div class="modal-actions" style="justify-content:center;gap:12px;">
+      <button class="btn" id="confirmCancelBtn" onclick="appConfirmCancel()">Cancelar</button>
+      <button class="btn btn-danger" id="confirmOkBtn" onclick="appConfirmOk()">Eliminar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
@@ -2355,6 +2368,34 @@ let isDirty = false;
 let pendingImportData = null;
 
 const LS_KEY = "inventario_pro_v4";
+
+// ══════════════════════════════════
+//  APP CONFIRM (reemplaza confirm())
+// ══════════════════════════════════
+let _confirmResolve = null;
+
+function appConfirm(msg, { titulo = '¿Estás seguro?', icono = '⚠️', okLabel = 'Confirmar', okDanger = true } = {}) {
+  return new Promise(resolve => {
+    _confirmResolve = resolve;
+    document.getElementById('confirmIcon').textContent = icono;
+    document.getElementById('confirmTitle').textContent = titulo;
+    document.getElementById('confirmMsg').textContent = msg;
+    const okBtn = document.getElementById('confirmOkBtn');
+    okBtn.textContent = okLabel;
+    okBtn.className = okDanger ? 'btn btn-danger' : 'btn btn-primary';
+    document.getElementById('modalConfirm').classList.remove('hidden');
+  });
+}
+
+function appConfirmOk() {
+  document.getElementById('modalConfirm').classList.add('hidden');
+  if (_confirmResolve) { _confirmResolve(true); _confirmResolve = null; }
+}
+
+function appConfirmCancel() {
+  document.getElementById('modalConfirm').classList.add('hidden');
+  if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+}
 
 // ══════════════════════════════════
 //  localStorage
@@ -2563,7 +2604,7 @@ async function avisarCompletado(recuento) {
 }
 
 function resetStorage() {
-  if (!confirm('¿Reiniciar todos los datos? (Esta acción no se puede deshacer)')) return;
+  if (!await appConfirm('Esta acción no se puede deshacer.', { titulo: '¿Reiniciar datos?', icono: '🗑️', okLabel: 'Reiniciar', okDanger: true })) return;
   showToast('⚠️ Función deshabilitada en modo servidor.');
 }
 
@@ -2702,9 +2743,9 @@ function handleImport(event) {
   reader.readAsText(file);
 }
 
-function doImport() {
+async function doImport() {
   if (!pendingImportData) return;
-  if (!confirm("¿Reemplazar TODOS los datos actuales con los del archivo? Se perderán cambios no guardados.")) return;
+  if (!await appConfirm('Se reemplazarán TODOS los datos actuales. Los cambios no guardados se perderán.', { titulo: '¿Importar datos?', icono: '📥', okLabel: 'Importar', okDanger: true })) return;
   DB        = pendingImportData.DB;
   USERS     = pendingImportData.USERS;
   SCHEDULE  = pendingImportData.SCHEDULE  || JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
@@ -2794,7 +2835,7 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  if (isDirty && !confirm("Tienes cambios sin guardar. ¿Salir de todas formas?")) return;
+  if (isDirty && !await appConfirm('Tienes cambios sin guardar que se perderán.', { titulo: '¿Salir de todas formas?', icono: '⚠️', okLabel: 'Salir', okDanger: true })) return;
   await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
   if (_ws) { _ws.onclose = null; _ws.close(); _ws = null; }
   document.getElementById("viewApp").classList.add("hidden");
@@ -3165,10 +3206,10 @@ function updateContado(i) {
   markDirty();
 }
 
-function deleteRow(e, i) {
+async function deleteRow(e, i) {
   e.stopPropagation();
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar filas."); return; }
-  if (!confirm("¿Eliminar esta referencia?")) return;
+  if (!await appConfirm('Esta referencia se eliminará del recuento.', { titulo: '¿Eliminar referencia?', icono: '🗑️', okLabel: 'Eliminar', okDanger: true })) return;
   DB[activeInv].articulos.splice(i, 1);
   markDirty();
   clearEntry(); renderMatrix();
@@ -3301,7 +3342,7 @@ function switchToInv(name) {
 
 async function deleteInventory(name) {
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar recuentos."); return; }
-  if (!confirm(`¿Eliminar el recuento "${name}"? No se puede deshacer.`)) return;
+  if (!await appConfirm(`El recuento "${name}" se eliminará permanentemente.`, { titulo: '¿Eliminar recuento?', icono: '🗑️', okLabel: 'Eliminar', okDanger: true })) return;
   try {
     await apiFetch('/api/recuentos/' + encodeURIComponent(name), { method: 'DELETE' });
     delete DB[name];
@@ -3968,12 +4009,12 @@ function parsePasteData(text) {
   }).filter(r => r.codigo);
 }
 
-function confirmPaste() {
+async function confirmPaste() {
   if (role !== "admin") { showToast("⛔ Solo el administrador puede pegar datos."); return; }
   const text = document.getElementById("pasteArea").value;
   const rows = parsePasteData(text);
   if (!rows.length) { showToast("⚠️ No se detectaron datos válidos."); return; }
-  if (!confirm(`¿Añadir ${rows.length} fila${rows.length>1?"s":""} al recuento "${activeInv}"?`)) return;
+  if (!await appConfirm(`Se añadirán ${rows.length} fila${rows.length>1?'s':''} al recuento "${activeInv}".`, { titulo: '¿Confirmar pegado?', icono: '📋', okLabel: 'Añadir', okDanger: false })) return;
   rows.forEach(r => DB[activeInv].articulos.push(r));
   markDirty();
   renderMatrix();
@@ -4221,7 +4262,7 @@ async function saveUser() {
 
 async function deleteUser(id) {
   if (String(id) === String(currentUser.id)) { alert("No puedes eliminarte a ti mismo."); return; }
-  if (!confirm("¿Eliminar este usuario?")) return;
+  if (!await appConfirm('Este usuario se eliminará permanentemente.', { titulo: '¿Eliminar usuario?', icono: '🗑️', okLabel: 'Eliminar', okDanger: true })) return;
   try {
     await apiFetch('/api/usuarios/' + id, { method: 'DELETE' });
     // Recargar lista desde servidor
