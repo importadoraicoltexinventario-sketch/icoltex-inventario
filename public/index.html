@@ -1919,8 +1919,12 @@ select, input, textarea, button { font-family: var(--sans); }
               </button>
             </div>
 
-            <div class="ef-group">
-              <button class="btn-submit-entry inactive" id="btnSubmitEntry" onclick="submitEntry()" disabled>Actualizar</button>
+            <div class="ef-group" style="display:flex;gap:8px;align-items:flex-end;">
+              <button class="btn-submit-entry inactive" id="btnSubmitEntry" onclick="onEntryBtn()" disabled style="flex:1;">✏️ Editar</button>
+              <button id="btnCancelEntry" onclick="cancelEdit()"
+                style="display:none;padding:9px 14px;border-radius:8px;border:1.5px solid #e2e8f0;background:#f8fafc;color:#64748b;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--sans);">
+                ✕ Cancelar
+              </button>
             </div>
 
           </div>
@@ -3037,10 +3041,7 @@ function renderMatrix() {
           <td class="text-r"><input class="input-cell" type="number" step="0.001" style="width:80px;text-align:right" value="${fisicoVal}" placeholder="pend." onchange="updateCell(${i},'fisico',parseFloat(this.value)||0);updateContado(${i})" onclick="event.stopPropagation()" ${histTip}></td>
           <td class="text-r"><input class="input-cell" type="number" step="0.01" style="width:80px;text-align:right" value="${item.sap}" onchange="updateCell(${i},'sap',parseFloat(this.value)||0)" onclick="event.stopPropagation()"></td>
           <td class="text-r ${difClass}">${fmt(dif)}</td>
-          <td class="text-c" style="white-space:nowrap;">
-            <button class="btn-edit-row" onclick="event.stopPropagation();selectRow(${i})" title="Editar fila">✏️ Editar</button>
-            <button class="btn-icon" onclick="event.stopPropagation();deleteRow(event,${i})" title="Eliminar fila" style="margin-left:4px;">🗑</button>
-          </td>
+          <td class="text-c"><button class="btn-icon" onclick="event.stopPropagation();deleteRow(event,${i})" title="Eliminar fila">🗑</button></td>
         </tr>
       `);
     } else {
@@ -3052,9 +3053,7 @@ function renderMatrix() {
           <td class="text-r"><input class="input-cell" type="number" step="0.001" style="width:80px;text-align:right" value="${fisicoVal}" placeholder="pend." onchange="updateCell(${i},'fisico',parseFloat(this.value)||0);updateContado(${i})" onclick="event.stopPropagation()" ${histTip}></td>
           <td class="text-r" style="font-family:var(--mono);font-size:12px;">${fmt(item.sap)}</td>
           <td class="text-r ${difClass}">${fmt(dif)}</td>
-          <td class="text-c" style="white-space:nowrap;">
-            <button class="btn-edit-row" onclick="event.stopPropagation();selectRow(${i})" title="Editar fila">✏️ Editar</button>
-          </td>
+          <td class="text-c" style="color:var(--text3);font-size:11px;">—</td>
         </tr>
       `);
     }
@@ -3176,10 +3175,55 @@ function onFechaConteoChange(val) {
 
 // ── selectRowHighlight: solo resalta la fila sin activar formulario ──
 function selectRowHighlight(i) {
+  // Si estaba editando, cancelar primero
+  if (_editingActive) cancelEdit();
+
   selectedRow = i;
   document.querySelectorAll("#matrizBody tr").forEach((tr, idx) => {
     tr.classList.toggle("row-selected", idx === i);
   });
+
+  // Cambiar botón a "Editar" activo
+  const btn = document.getElementById("btnSubmitEntry");
+  btn.disabled = false;
+  btn.className = "btn-submit-entry active";
+  btn.textContent = "✏️ Editar";
+  _editingActive = false;
+}
+
+let _editingActive = false;
+
+// onEntryBtn: alterna entre Editar y Actualizar
+function onEntryBtn() {
+  if (!_editingActive) {
+    // Activar edición
+    if (selectedRow === null) return;
+    selectRow(selectedRow);
+  } else {
+    // Guardar
+    submitEntry();
+  }
+}
+
+// cancelEdit: cancela sin guardar
+function cancelEdit() {
+  _editingActive = false;
+  selectedRow = null;
+  document.querySelectorAll("#matrizBody tr").forEach(tr => tr.classList.remove("row-selected"));
+  // Desactivar calculadora
+  const calcInp = document.getElementById("eCalcInput");
+  calcInp.disabled = true; calcInp.value = "";
+  document.getElementById("calcTotalBar").innerHTML = "";
+  document.getElementById("btnVerHistorial").style.display = "none";
+  document.getElementById("btnCancelEntry").style.display = "none";
+  // Resetear botón
+  const btn = document.getElementById("btnSubmitEntry");
+  btn.disabled = true; btn.className = "btn-submit-entry inactive";
+  btn.textContent = "✏️ Editar";
+  // Resetear label
+  const lbl = document.getElementById("entryLabel");
+  lbl.classList.add("idle");
+  lbl.textContent = "Selecciona una fila para capturar el conteo físico";
 }
 
 // ── selectRow: activa formulario para editar ──
@@ -3214,8 +3258,11 @@ function selectRow(i) {
   calcInp.value = "";
   calcInp.focus();
 
+  _editingActive = true;
   const btn = document.getElementById("btnSubmitEntry");
   btn.disabled = false; btn.className = "btn-submit-entry active";
+  btn.textContent = "✅ Actualizar";
+  document.getElementById("btnCancelEntry").style.display = "inline-block";
   const lbl = document.getElementById("entryLabel");
   lbl.classList.remove("idle");
   lbl.innerHTML = `EDITANDO: <strong>${esc(item.codigo)}</strong> — ${esc(item.descripcion)}`;
@@ -3224,7 +3271,12 @@ function selectRow(i) {
 function submitEntry() {
   if (selectedRow === null) return;
   const savedRow = selectedRow;
-  // Restaurar label a idle
+  // Resetear estado de edición
+  _editingActive = false;
+  document.getElementById("btnCancelEntry").style.display = "none";
+  const btn2 = document.getElementById("btnSubmitEntry");
+  btn2.disabled = true; btn2.className = "btn-submit-entry inactive";
+  btn2.textContent = "✏️ Editar";
   const lbl = document.getElementById("entryLabel");
   lbl.classList.add("idle");
   lbl.textContent = "Selecciona una fila para capturar el conteo físico";
