@@ -1956,6 +1956,14 @@ select, input, textarea, button { font-family: var(--sans); }
         <div id="addRowBar" class="hidden">
           <button class="btn btn-success" onclick="addNewRow()">+ Añadir línea</button>
         </div>
+
+        <!-- Botón Marcar Realizado — solo operadores -->
+        <div id="marcarRealizadoBar" class="hidden" style="margin-top:12px;display:flex;justify-content:flex-end;">
+          <button class="btn" onclick="marcarRecuentoRealizado()"
+            style="background:#16a34a;color:#fff;font-weight:700;padding:9px 22px;border-radius:8px;font-size:13px;display:flex;align-items:center;gap:8px;border:none;cursor:pointer;">
+            ✅ Marcar Recuento como Realizado
+          </button>
+        </div>
       </div>
 
       <!-- ══ HISTORIAL ══ -->
@@ -2601,6 +2609,34 @@ async function marcarTodasLeidas() {
 async function avisarCompletado(recuento) {
   await apiFetch('/api/notificaciones/aviso-completado', {method:'POST', body:{recuento}}).catch(()=>{});
   showToast('✅ Admin notificado que completaste el conteo.');
+}
+
+async function marcarRecuentoRealizado() {
+  if (!activeInv || !DB[activeInv]) { showToast('⚠️ No hay recuento activo.'); return; }
+  const ok = await appConfirm(
+    `¿Confirmas que terminaste el conteo físico de "${activeInv}"? Se notificará al administrador.`,
+    { titulo: 'Marcar como Realizado', icono: '✅', okLabel: 'Sí, marcar realizado', okDanger: false }
+  );
+  if (!ok) return;
+
+  // Guardar fecha de conteo de hoy si no tiene
+  if (!DB[activeInv].fechaConteo) {
+    const hoy = new Date();
+    const formatted = `${String(hoy.getDate()).padStart(2,'0')}/${String(hoy.getMonth()+1).padStart(2,'0')}/${hoy.getFullYear()}`;
+    DB[activeInv].fechaConteo = formatted;
+  }
+  // Guardar en servidor
+  await guardarRecuentoActivo();
+  // Avisar al admin
+  await avisarCompletado(activeInv);
+  // Actualizar UI del botón
+  const btn = document.querySelector('#marcarRealizadoBar button');
+  if (btn) {
+    btn.textContent = '✅ Recuento Realizado';
+    btn.style.background = '#64748b';
+    btn.disabled = true;
+  }
+  showToast('✅ Recuento marcado como realizado.');
 }
 
 function resetStorage() {
@@ -4330,6 +4366,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById("adminMenu").classList.remove("hidden");
       document.getElementById("calEditHint").classList.remove("hidden");
       document.getElementById("addRowBar").classList.remove("hidden");
+      document.getElementById("marcarRealizadoBar").classList.add("hidden");
       document.getElementById("sessionBanner").classList.add("hidden");
       document.getElementById("fechaConteoEdit").classList.add("hidden");
     } else {
@@ -4337,6 +4374,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById("btnNewInv2").classList.add("hidden");
       document.getElementById("adminFechaEdit").classList.add("hidden");
       document.getElementById("addRowBar").classList.add("hidden");
+      document.getElementById("marcarRealizadoBar").classList.remove("hidden");
       document.getElementById("sessionBanner").classList.add("hidden");
       document.getElementById("fechaConteoEdit").classList.remove("hidden");
     }
