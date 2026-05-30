@@ -2405,6 +2405,7 @@ function conectarWS() {
         _notifList.unshift(msg.datos);
         renderNotifPanel();
         showToast('🔔 ' + msg.datos.mensaje);
+        mostrarNotifPush(msg.datos.mensaje);
       } else if (msg.tipo === 'recuento_actualizado') {
         // Recargar datos del recuento actualizado en tiempo real
         actualizarRecuentoEnVivo(msg.nombre);
@@ -2412,6 +2413,31 @@ function conectarWS() {
     } catch(e) {}
   };
   _ws.onclose = () => { setTimeout(conectarWS, 3000); };
+}
+
+// ══════════════════════════════════
+//  NOTIFICACIONES PUSH DEL NAVEGADOR
+// ══════════════════════════════════
+function solicitarPermisoPush() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().then(perm => {
+      if (perm === 'granted') showToast('🔔 Notificaciones activadas.');
+    });
+  }
+}
+
+function mostrarNotifPush(mensaje) {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  // Solo mostrar si la pestaña NO está activa
+  if (document.visibilityState === 'visible') return;
+  try {
+    new Notification('ICOLTEX Inventario', {
+      body: mensaje,
+      icon: '/favicon.ico'
+    });
+  } catch(e) {}
 }
 
 // Actualizar recuento en vivo cuando otro usuario guarda cambios
@@ -2753,12 +2779,18 @@ async function doLogin() {
     const ops = currentUser.ops;
     activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
     document.getElementById("selInv").value = activeInv;
+  } else {
+    if (Object.keys(DB).length > 0) {
+      activeInv = Object.keys(DB)[0];
+      document.getElementById("selInv").value = activeInv;
+    }
   }
   loadInventory();
   goView("historial");
   sidebarOpen = true; toggleSidebar();
   updateSaveIndicator();
   conectarWS();
+  solicitarPermisoPush();
 }
 
 async function doLogout() {
@@ -4231,9 +4263,66 @@ function showToast(msg) {
 }
 
 // ══════════════════════════════════
-//  INIT
+//  INIT — verificar sesión al cargar
 // ══════════════════════════════════
-// Datos se cargan tras login via API
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/sesion', { credentials: 'same-origin', headers: { 'Cache-Control': 'no-cache' } });
+    if (!res.ok) return; // sin sesión → queda en login
+    const data = await res.json();
+    const user = data.usuario;
+    if (!user) return;
+
+    currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
+    role = user.rol;
+
+    document.getElementById("viewLogin").classList.add("hidden");
+    document.getElementById("viewApp").classList.remove("hidden");
+    document.body.style.cssText = "display:block;padding:0;margin:0;background:var(--bg);";
+
+    document.getElementById("sbEmail").textContent = user.email;
+    document.getElementById("sbBadge").textContent = role.toUpperCase();
+    document.getElementById("sbBadge").className = "sb-user-badge " + (role === "admin" ? "badge-admin" : "badge-operador");
+
+    if (role === "admin") {
+      document.getElementById("btnNewInv2").classList.remove("hidden");
+      document.getElementById("adminFechaEdit").classList.remove("hidden");
+      document.getElementById("adminMenu").classList.remove("hidden");
+      document.getElementById("calEditHint").classList.remove("hidden");
+      document.getElementById("addRowBar").classList.remove("hidden");
+      document.getElementById("sessionBanner").classList.add("hidden");
+      document.getElementById("fechaConteoEdit").classList.add("hidden");
+    } else {
+      document.getElementById("adminMenu").classList.add("hidden");
+      document.getElementById("btnNewInv2").classList.add("hidden");
+      document.getElementById("adminFechaEdit").classList.add("hidden");
+      document.getElementById("addRowBar").classList.add("hidden");
+      document.getElementById("sessionBanner").classList.add("hidden");
+      document.getElementById("fechaConteoEdit").classList.remove("hidden");
+    }
+
+    await loadFromStorage();
+    buildInvSelector();
+    if (role === "operador") {
+      const ops = currentUser.ops;
+      activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
+      document.getElementById("selInv").value = activeInv;
+    } else {
+      if (Object.keys(DB).length > 0) {
+        activeInv = Object.keys(DB)[0];
+        document.getElementById("selInv").value = activeInv;
+      }
+    }
+    loadInventory();
+    goView("historial");
+    sidebarOpen = true; toggleSidebar();
+    updateSaveIndicator();
+    conectarWS();
+    solicitarPermisoPush();
+  } catch(e) {
+    console.warn('Sin sesión activa:', e.message);
+  }
+});
 </script>
 
 </body>
