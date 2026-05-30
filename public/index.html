@@ -2604,7 +2604,6 @@ async function avisarCompletado(recuento) {
 }
 
 function resetStorage() {
-  if (!await appConfirm('Esta acción no se puede deshacer.', { titulo: '¿Reiniciar datos?', icono: '🗑️', okLabel: 'Reiniciar', okDanger: true })) return;
   showToast('⚠️ Función deshabilitada en modo servidor.');
 }
 
