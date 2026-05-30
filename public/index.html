@@ -1515,22 +1515,33 @@ select, input, textarea, button { font-family: var(--sans); }
 ══════════════════════════════ */
 .toast {
   position: fixed;
-  bottom: 20px; right: 20px;
-  background: var(--sb-bg);
-  color: #f0ebe3;
-  padding: 11px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  z-index: 200;
+  bottom: 28px; right: 24px;
+  background: #1e293b;
+  color: #f1f5f9;
+  padding: 13px 18px 13px 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: var(--sans);
+  z-index: 9999;
   opacity: 0;
-  transform: translateY(10px);
-  transition: all .25s;
+  transform: translateY(16px) scale(0.97);
+  transition: opacity .22s ease, transform .22s ease;
   pointer-events: none;
-  max-width: 320px;
-  border-left: 3px solid var(--accent);
+  max-width: 340px;
+  min-width: 200px;
+  border-left: 4px solid #3b82f6;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.4;
 }
-.toast.show { opacity: 1; transform: translateY(0); }
+.toast.show { opacity: 1; transform: translateY(0) scale(1); }
+.toast.toast-ok    { border-left-color: #22c55e; background: #14532d; color: #dcfce7; }
+.toast.toast-error { border-left-color: #ef4444; background: #450a0a; color: #fee2e2; }
+.toast.toast-warn  { border-left-color: #f59e0b; background: #451a03; color: #fef3c7; }
+.toast.toast-info  { border-left-color: #3b82f6; background: #1e3a5f; color: #dbeafe; }
 
 /* ══════════════════════════════
    RESPONSIVE
@@ -4333,10 +4344,17 @@ function exportCSV() {
 let toastTimer;
 function showToast(msg) {
   const t = document.getElementById("toast");
+  // Detectar tipo por emoji inicial
+  t.className = "toast"; // reset
+  if      (msg.startsWith("✅") || msg.startsWith("💾")) t.classList.add("toast-ok");
+  else if (msg.startsWith("❌") || msg.startsWith("⛔")) t.classList.add("toast-error");
+  else if (msg.startsWith("⚠️"))                         t.classList.add("toast-warn");
+  else if (msg.startsWith("🔔") || msg.startsWith("ℹ️") || msg.startsWith("📦") || msg.startsWith("📋")) t.classList.add("toast-info");
+  else                                                    t.classList.add("toast-info");
   t.textContent = msg;
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 3200);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 3400);
 }
 
 // ══════════════════════════════════
