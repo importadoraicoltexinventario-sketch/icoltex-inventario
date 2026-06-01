@@ -3048,6 +3048,8 @@ function goView(v) {
       abrirSelCrono();
     } else {
       calOwner = null;
+      const sub = document.getElementById("cronoSubtitle");
+      if (sub) sub.textContent = "Tu cronograma";
       cargarCronograma(null);
     }
   }
