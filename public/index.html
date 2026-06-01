@@ -2051,8 +2051,9 @@ select, input, textarea, button { font-family: var(--sans); }
         <div class="view-header">
           <div class="view-header-left">
             <h2>Cronograma</h2>
-            <p>Calendario y plan de trabajo del ejercicio</p>
+            <p id="cronoSubtitle">Calendario y plan de trabajo del ejercicio</p>
           </div>
+          <button id="btnCambiarCrono" onclick="abrirSelCrono()" class="btn btn-primary" style="display:none;">👥 Cambiar usuario</button>
         </div>
         <div class="sched-layout">
           <div class="cal-wrap">
@@ -2307,6 +2308,18 @@ select, input, textarea, button { font-family: var(--sans); }
   </div>
 </div>
 
+<!-- MODAL SELECTOR CRONOGRAMA (admin) -->
+<div id="modalSelCrono" class="modal-bg hidden" style="z-index:600;">
+  <div class="modal-box" style="max-width:480px;">
+    <h3 style="margin:0 0 6px;font-size:16px;">📅 Seleccionar Cronograma</h3>
+    <p style="margin:0 0 18px;font-size:12px;color:var(--text2);">Elige de quién quieres ver o editar el cronograma.</p>
+    <div id="selCronoList" style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;"></div>
+    <div class="modal-actions" style="margin-top:18px;">
+      <button class="btn" onclick="cerrarSelCrono()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL VISTA RÁPIDA -->
 <div id="modalVistaRapida" class="modal-bg hidden" style="z-index:500;">
   <div class="modal-box" style="max-width:900px;width:95%;max-height:80vh;display:flex;flex-direction:column;padding:0;overflow:hidden;">
@@ -2442,6 +2455,7 @@ let role = "", currentUser = null;
 let activeInv = "", selectedRow = null, editingUserId = null;
 let sidebarOpen = false;
 let calYear = 2026, calMonth = 5;
+let calOwner = null;  // null = propio, { id, nombre, email } = operador seleccionado
 let nextUserId = 10;
 let isDirty = false;
 let pendingImportData = null;
@@ -2739,9 +2753,11 @@ async function loadFromStorage() {
         ops: u.ops || []
       }));
     } catch(e) { console.warn('No se pudieron cargar usuarios:', e.message); }
-    // Cargar calendario
-    const cal = await apiFetch('/api/calendario');
-    CAL_TEXTS = cal || {};
+    // Calendario del usuario actual
+    try {
+      const cal = await apiFetch('/api/calendario/' + currentUser.id);
+      CAL_TEXTS = cal || {};
+    } catch(e) { CAL_TEXTS = {}; }
     SCHEDULE = {};
     return true;
   } catch(e) {
@@ -2992,7 +3008,14 @@ function goView(v) {
   document.getElementById("topTitle").textContent = TITLES[v];
   if (v === "historial")  renderHistory();
   if (v === "analisis")   { buildAnalisisSelector(); renderAnalisis(); }
-  if (v === "cronograma") { renderCronograma(); renderTaskList(); }
+  if (v === "cronograma") {
+    if (role === "admin") {
+      abrirSelCrono();
+    } else {
+      calOwner = null;
+      cargarCronograma(null);
+    }
+  }
   if (v === "usuarios")   renderUsers();
 }
 
@@ -4311,6 +4334,88 @@ function handleTablePaste(e) {
 
 function renderCronograma() { renderCalendar(); renderScheduleTable(); }
 
+// ══════════════════════════════════
+//  CRONOGRAMA POR USUARIO
+// ══════════════════════════════════
+
+function abrirSelCrono() {
+  const list = document.getElementById("selCronoList");
+  list.innerHTML = "";
+
+  // Opción: mi propio cronograma
+  list.insertAdjacentHTML("beforeend", `
+    <div onclick="elegirCronograma(null)" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:10px;cursor:pointer;background:#f8fafc;transition:background .15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#f8fafc'">
+      <div style="width:36px;height:36px;border-radius:50%;background:#1a5fd4;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;">
+        ${currentUser.nombre.charAt(0).toUpperCase()}
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#1e293b;">${esc(currentUser.nombre)} <span style="font-size:10px;background:#1a5fd4;color:#fff;border-radius:4px;padding:2px 6px;margin-left:4px;">TÚ</span></div>
+        <div style="font-size:11px;color:#64748b;">${esc(currentUser.email)}</div>
+      </div>
+    </div>`);
+
+  // Operadores
+  const ops = USERS.filter(u => u.rol === "operador");
+  if (ops.length === 0) {
+    list.insertAdjacentHTML("beforeend", `<div style="font-size:12px;color:var(--text3);padding:12px;text-align:center;">No hay operadores registrados.</div>`);
+  } else {
+    ops.forEach(u => {
+      list.insertAdjacentHTML("beforeend", `
+        <div onclick="elegirCronograma('${u.id}')" style="display:flex;align-items:center;gap:12px;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:10px;cursor:pointer;background:#fff;transition:background .15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fff'">
+          <div style="width:36px;height:36px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;">
+            ${esc(u.nombre.charAt(0).toUpperCase())}
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#1e293b;">${esc(u.nombre)} <span style="font-size:10px;background:#10b981;color:#fff;border-radius:4px;padding:2px 6px;margin-left:4px;">OPERADOR</span></div>
+            <div style="font-size:11px;color:#64748b;">${esc(u.email)}</div>
+          </div>
+        </div>`);
+    });
+  }
+
+  document.getElementById("modalSelCrono").classList.remove("hidden");
+}
+
+function cerrarSelCrono() {
+  document.getElementById("modalSelCrono").classList.add("hidden");
+}
+
+async function elegirCronograma(userId) {
+  cerrarSelCrono();
+  const user = userId ? USERS.find(u => String(u.id) === String(userId)) : null;
+  calOwner = user || null;
+  await cargarCronograma(userId);
+  // Actualizar subtítulo del cronograma
+  const sub = document.getElementById("cronoSubtitle");
+  if (sub) sub.textContent = calOwner ? `Viendo cronograma de: ${calOwner.nombre}` : "Tu cronograma";
+  const btnCambiar = document.getElementById("btnCambiarCrono");
+  if (btnCambiar) btnCambiar.style.display = role === "admin" ? "" : "none";
+}
+
+async function cargarCronograma(userId) {
+  try {
+    const uid = userId || currentUser.id;
+    const docs = await apiFetch('/api/calendario/' + uid);
+    CAL_TEXTS = docs || {};
+    calYear = new Date().getFullYear();
+    calMonth = new Date().getMonth() + 1;
+    renderCalendar();
+    renderTaskList();
+  } catch(e) {
+    CAL_TEXTS = {};
+    renderCalendar();
+    renderTaskList();
+    if (!e.message.includes('404')) showToast('⚠️ Error cargando cronograma: ' + e.message);
+  }
+}
+
+async function guardarCalDay(key, val) {
+  const uid = (calOwner ? calOwner.id : currentUser.id);
+  try {
+    await apiFetch('/api/calendario/' + uid, { method: 'PUT', body: { clave: key, texto: val || null } });
+  } catch(e) { console.warn('Error guardando calendario:', e.message); }
+}
+
 function calNavMonth(dir) {
   calMonth += dir;
   if (calMonth > 12) { calMonth = 1; calYear++; }
@@ -4367,10 +4472,7 @@ function editCalDay(key, cell) {
     if (val) CAL_TEXTS[key] = val; else delete CAL_TEXTS[key];
     renderCalendar();
     renderTaskList();
-    // Guardar en servidor
-    try {
-      await apiFetch('/api/calendario', { method: 'PUT', body: { clave: key, texto: val || null } });
-    } catch(e) { console.warn('Error guardando calendario:', e.message); }
+    await guardarCalDay(key, val);
   });
   ta.addEventListener("keydown", e => { if (e.key === "Escape") renderCalendar(); });
 }
