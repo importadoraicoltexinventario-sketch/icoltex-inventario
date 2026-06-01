@@ -305,6 +305,38 @@ select, input, textarea, button { font-family: var(--sans); }
   position: relative;
   animation: fadeUp .3s ease;
 }
+/* Topbar fija dentro del main */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #eaf2fb;
+  overflow-y: auto;
+  min-width: 0;
+  position: relative;
+  z-index: 2;
+}
+.topbar {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border2);
+  padding: 14px 24px 14px 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 58px;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 200 !important;
+  gap: 8px;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  flex-shrink: 0;
+}
+.content {
+  flex: 1;
+  padding: 20px;
+  background: #eaf2fb;
+}
 
 /* sidebar right border */
 .sidebar { border-right: 1px solid #e8edf3; }
@@ -490,40 +522,7 @@ select, input, textarea, button { font-family: var(--sans); }
 /* ══════════════════════════════
    MAIN
 ══════════════════════════════ */
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: var(--bg);
-  overflow: hidden;
-  min-width: 0;
-}
 
-.topbar {
-  background: var(--surface);
-  border-bottom: 1px solid var(--border2);
-  padding: 14px 24px 14px 60px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 58px;
-  position: sticky;
-  top: 0;
-  z-index: 150;
-  gap: 8px;
-  flex-wrap: wrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  flex-shrink: 0;
-}
-
-.main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background: #eaf2fb;
-  overflow-y: auto;
-  min-width: 0;
-}
 
 .topbar-title {
   font-size: 16px;
@@ -558,7 +557,7 @@ select, input, textarea, button { font-family: var(--sans); }
 }
 .save-dot.dirty { background: var(--amber); }
 
-.content { flex: 1; padding: 20px; background: #eaf2fb; }
+
 
 /* ══════════════════════════════
    BOTONES
@@ -1707,7 +1706,7 @@ select, input, textarea, button { font-family: var(--sans); }
 /* Asegura que el contenido quede sobre las figuras */
 .sidebar  { position:relative; z-index:2; }
 .main     { position:relative; z-index:2; }
-.topbar   { position:relative; z-index:3; }
+.topbar   { z-index:200; }
 .content > * { position: relative; z-index: 1; }
 .view-header {
   display: flex;
