@@ -376,6 +376,12 @@ app.put('/api/calendario/:userId', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// DELETE /api/calendario/:userId/limpiar → borrar todo el calendario de un usuario (solo admin)
+app.delete('/api/calendario/:userId/limpiar', auth, soloAdmin, async (req, res) => {
+  await db.collection('calendario').deleteMany({ userId: req.params.userId });
+  res.json({ ok: true });
+});
+
 // Retrocompatibilidad: GET /api/calendario (sin userId) → calendario del usuario actual
 app.get('/api/calendario', auth, async (req, res) => {
   const userId = req.session.usuario.id;
