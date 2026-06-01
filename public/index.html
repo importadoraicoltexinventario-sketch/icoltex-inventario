@@ -507,9 +507,12 @@ select, input, textarea, button { font-family: var(--sans); }
   justify-content: space-between;
   align-items: center;
   min-height: 58px;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 100;
   gap: 8px;
   flex-wrap: wrap;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
 
 .main {
@@ -2993,7 +2996,8 @@ async function doLogin() {
 }
 
 async function doLogout() {
-  if (isDirty && !await appConfirm('Tienes cambios sin guardar que se perderán.', { titulo: '¿Salir de todas formas?', icono: '⚠️', okLabel: 'Salir', okDanger: true })) return;
+  const msg = isDirty ? 'Tienes cambios sin guardar que se perderán.' : '¿Deseas cerrar tu sesión?';
+  if (!await appConfirm(msg, { titulo: '¿Cerrar sesión?', icono: '🚪', okLabel: 'Sí, salir', okDanger: false })) return;
   await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
   if (_ws) { _ws.onclose = null; _ws.close(); _ws = null; }
   document.getElementById("viewApp").classList.add("hidden");
