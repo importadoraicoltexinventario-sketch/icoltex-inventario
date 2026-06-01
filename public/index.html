@@ -507,14 +507,13 @@ select, input, textarea, button { font-family: var(--sans); }
   justify-content: space-between;
   align-items: center;
   min-height: 58px;
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 150;
   gap: 8px;
   flex-wrap: wrap;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  flex-shrink: 0;
 }
 
 .main {
@@ -522,9 +521,8 @@ select, input, textarea, button { font-family: var(--sans); }
   display: flex;
   flex-direction: column;
   background: #eaf2fb;
-  overflow: hidden;
+  overflow-y: auto;
   min-width: 0;
-  padding-top: 58px;
 }
 
 .topbar-title {
@@ -560,7 +558,7 @@ select, input, textarea, button { font-family: var(--sans); }
 }
 .save-dot.dirty { background: var(--amber); }
 
-.content { flex: 1; padding: 20px; overflow-y: auto; background: #eaf2fb; }
+.content { flex: 1; padding: 20px; background: #eaf2fb; }
 
 /* ══════════════════════════════
    BOTONES
