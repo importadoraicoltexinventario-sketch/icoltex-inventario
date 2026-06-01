@@ -21,7 +21,7 @@ MongoClient.connect(MONGO_URL).then(client => {
   db = client.db('icoltex');
   db.collection('usuarios').createIndex({ email: 1 }, { unique: true });
   db.collection('recuentos').createIndex({ nombre: 1 }, { unique: true });
-  db.collection('calendario').createIndex({ clave: 1 }, { unique: true });
+  db.collection('calendario').createIndex({ userId: 1, clave: 1 }, { unique: true });
   console.log('✅ MongoDB conectado');
 
   db.collection('usuarios').countDocuments().then(count => {
@@ -341,22 +341,48 @@ app.post('/api/notificaciones/aviso-completado', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Calendario ─────────────────────────────────────────────────────────────
-app.get('/api/calendario', auth, async (req, res) => {
-  const docs = await db.collection('calendario').find({}).toArray();
+// ── Calendario por usuario ────────────────────────────────────────────────
+// GET  /api/calendario/:userId  → obtener calendario de un usuario
+// PUT  /api/calendario/:userId  → guardar/borrar un día (admin puede editar cualquiera)
+
+app.get('/api/calendario/:userId', auth, async (req, res) => {
+  const { userId } = req.params;
+  // Operador solo puede ver el suyo
+  if (req.session.usuario.rol === 'operador' && req.session.usuario.id !== userId) {
+    return res.status(403).json({ error: 'Sin acceso' });
+  }
+  const docs = await db.collection('calendario').find({ userId }).toArray();
   const obj = {};
   docs.forEach(d => { obj[d.clave] = d.texto; });
   res.json(obj);
 });
 
-app.put('/api/calendario', auth, soloAdmin, async (req, res) => {
+app.put('/api/calendario/:userId', auth, async (req, res) => {
+  const { userId } = req.params;
+  // Operador solo puede editar el suyo; admin puede editar cualquiera
+  if (req.session.usuario.rol === 'operador' && req.session.usuario.id !== userId) {
+    return res.status(403).json({ error: 'Sin acceso' });
+  }
   const { clave, texto } = req.body;
   if (texto) {
-    await db.collection('calendario').updateOne({ clave }, { $set: { clave, texto } }, { upsert: true });
+    await db.collection('calendario').updateOne(
+      { userId, clave },
+      { $set: { userId, clave, texto } },
+      { upsert: true }
+    );
   } else {
-    await db.collection('calendario').deleteOne({ clave });
+    await db.collection('calendario').deleteOne({ userId, clave });
   }
   res.json({ ok: true });
+});
+
+// Retrocompatibilidad: GET /api/calendario (sin userId) → calendario del usuario actual
+app.get('/api/calendario', auth, async (req, res) => {
+  const userId = req.session.usuario.id;
+  const docs = await db.collection('calendario').find({ userId }).toArray();
+  const obj = {};
+  docs.forEach(d => { obj[d.clave] = d.texto; });
+  res.json(obj);
 });
 
 // ── Ping para mantener el servidor activo en Render ────────────────────────
