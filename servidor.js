@@ -345,9 +345,14 @@ app.post('/api/notificaciones/aviso-completado', auth, async (req, res) => {
 // GET  /api/calendario/:userId  → obtener calendario de un usuario
 // PUT  /api/calendario/:userId  → guardar/borrar un día (admin puede editar cualquiera)
 
+// DELETE /api/calendario/:userId/limpiar → borrar todo el calendario de un usuario (solo admin)
+app.delete('/api/calendario/:userId/limpiar', auth, soloAdmin, async (req, res) => {
+  await db.collection('calendario').deleteMany({ userId: req.params.userId });
+  res.json({ ok: true });
+});
+
 app.get('/api/calendario/:userId', auth, async (req, res) => {
   const { userId } = req.params;
-  // Operador solo puede ver el suyo
   if (req.session.usuario.rol === 'operador' && req.session.usuario.id !== userId) {
     return res.status(403).json({ error: 'Sin acceso' });
   }
@@ -359,7 +364,6 @@ app.get('/api/calendario/:userId', auth, async (req, res) => {
 
 app.put('/api/calendario/:userId', auth, async (req, res) => {
   const { userId } = req.params;
-  // Operador solo puede editar el suyo; admin puede editar cualquiera
   if (req.session.usuario.rol === 'operador' && req.session.usuario.id !== userId) {
     return res.status(403).json({ error: 'Sin acceso' });
   }
@@ -373,12 +377,6 @@ app.put('/api/calendario/:userId', auth, async (req, res) => {
   } else {
     await db.collection('calendario').deleteOne({ userId, clave });
   }
-  res.json({ ok: true });
-});
-
-// DELETE /api/calendario/:userId/limpiar → borrar todo el calendario de un usuario (solo admin)
-app.delete('/api/calendario/:userId/limpiar', auth, soloAdmin, async (req, res) => {
-  await db.collection('calendario').deleteMany({ userId: req.params.userId });
   res.json({ ok: true });
 });
 
