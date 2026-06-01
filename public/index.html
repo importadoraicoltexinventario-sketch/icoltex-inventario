@@ -507,9 +507,11 @@ select, input, textarea, button { font-family: var(--sans); }
   justify-content: space-between;
   align-items: center;
   min-height: 58px;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
+  left: 0;
+  right: 0;
+  z-index: 150;
   gap: 8px;
   flex-wrap: wrap;
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
@@ -522,6 +524,7 @@ select, input, textarea, button { font-family: var(--sans); }
   background: #eaf2fb;
   overflow: hidden;
   min-width: 0;
+  padding-top: 58px;
 }
 
 .topbar-title {
