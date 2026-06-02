@@ -3916,7 +3916,7 @@ function renderAnalisis() {
     ctx.fillStyle="#fff"; ctx.fill();
 
     // Texto central
-    ctx.fillStyle = pctDifGen >= 10 ? "#f43f5e" : "#10b981";
+    ctx.fillStyle = pctDifGen < 0 ? "#f43f5e" : "#10b981";
     ctx.font = "bold 28px 'DM Mono', monospace";
     ctx.textAlign="center"; ctx.textBaseline="middle";
     ctx.fillText(pctDifGen+"%", cx, cy-8);
