@@ -1769,7 +1769,7 @@ select, input, textarea, button { font-family: var(--sans); }
   vertical-align: middle;
 }
 
-/* ── App Inventario Pro - Sidebar Brand ── */
+/* ── Sidebar Brand ── */
 .sb-brand-inner { display:flex; align-items:center; gap:11px; }
 .sb-logo-img { width:52px; height:52px; border-radius:12px; object-fit:contain; flex-shrink:0; }
 .sb-brand-text { display:flex; flex-direction:column; }
@@ -1777,7 +1777,7 @@ select, input, textarea, button { font-family: var(--sans); }
 .sb-pro-text { font-family:'DM Sans',sans-serif; font-size:14px; font-weight:800; font-style:italic; color:#2563eb; margin-right:4px; }
 .sb-v4-badge { display:inline-block; background:#2563eb; color:#fff; font-size:10px; font-weight:700; padding:1px 7px; border-radius:20px; vertical-align:middle; }
 
-/* ── Entry Modal ── */
+/* ── Entry Modal (solo activo al editar) ── */
 .entry-modal-overlay {
   display: none;
   position: fixed;
@@ -1786,22 +1786,15 @@ select, input, textarea, button { font-family: var(--sans); }
   z-index: 1200;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 40px;
+  padding-top: 60px;
 }
 .entry-modal-overlay.active {
   display: flex;
 }
 .entry-modal-box {
-  background: #fff;
-  border-radius: 14px;
-  padding: 20px 22px 18px;
   width: min(96vw, 700px);
-  box-shadow: 0 8px 40px rgba(15,30,80,.18);
-  border-left: 4px solid #1a5fd4;
+  box-shadow: 0 8px 40px rgba(15,30,80,.22);
   animation: fadeUp .2s ease;
-}
-.entry-modal-box .entry-label {
-  margin-bottom: 14px;
 }
 </style>
 </head>
@@ -1979,8 +1972,7 @@ select, input, textarea, button { font-family: var(--sans); }
           <select id="selInv" onchange="loadInventory()"></select>
         </div>
 
-        <div class="entry-modal-overlay" id="entryModalOverlay">
-        <div class="entry-panel entry-modal-box" id="entryPanelBox">
+        <div class="entry-panel">
           <div class="entry-label idle" id="entryLabel">Selecciona una fila para capturar el conteo físico</div>
           <div class="entry-form">
 
@@ -2019,7 +2011,6 @@ select, input, textarea, button { font-family: var(--sans); }
             </div>
 
           </div>
-        </div>
         </div>
 
         <div class="matrix-header">
@@ -3456,8 +3447,8 @@ function onEntryBtn() {
 
 // cancelEdit: cancela sin guardar
 function cancelEdit() {
-  document.getElementById('entryModalOverlay').classList.remove('active');
-    _editingActive = false;
+  closeEntryModal();
+  _editingActive = false;
   selectedRow = null;
   document.querySelectorAll("#matrizBody tr").forEach(tr => tr.classList.remove("row-selected"));
   // Desactivar calculadora
@@ -3509,8 +3500,8 @@ function selectRow(i) {
   calcInp.focus();
 
   _editingActive = true;
-  document.getElementById('entryModalOverlay').classList.add('active');
-    const btn = document.getElementById("btnSubmitEntry");
+  openEntryModal();
+  const btn = document.getElementById("btnSubmitEntry");
   btn.disabled = false; btn.className = "btn-submit-entry active";
   btn.textContent = "✅ Actualizar";
   document.getElementById("btnCancelEntry").style.display = "inline-block";
@@ -3520,8 +3511,8 @@ function selectRow(i) {
 }
 
 function submitEntry() {
-  document.getElementById('entryModalOverlay').classList.remove('active');
-    if (selectedRow === null) return;
+  closeEntryModal();
+  if (selectedRow === null) return;
   const savedRow = selectedRow;
   // Resetear estado de edición
   _editingActive = false;
@@ -4925,7 +4916,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.warn('Sin sesión activa:', e.message);
   }
 });
+
+// ── Entry Modal JS ──
+function openEntryModal() {
+  const src = document.querySelector('.entry-panel');
+  const clone = document.getElementById('entryModalClone');
+  if (!src || !clone) return;
+  // Sincronizar contenido
+  clone.innerHTML = src.innerHTML;
+  // Sincronizar valores de inputs
+  ['eCodigo','eDesc','eCalcInput'].forEach(id => {
+    const orig = document.getElementById(id);
+    const copy = clone.querySelector('#' + id);
+    if (orig && copy) copy.value = orig.value;
+  });
+  document.getElementById('entryModalOverlay').classList.add('active');
+  // Foco al input de cantidad
+  setTimeout(() => {
+    const inp = clone.querySelector('#eCalcInput');
+    if (inp && !inp.disabled) inp.focus();
+  }, 100);
+}
+
+function closeEntryModal() {
+  document.getElementById('entryModalOverlay').classList.remove('active');
+}
+
+// Cerrar modal al click en el overlay (fuera del panel)
+document.addEventListener('DOMContentLoaded', function() {
+  const overlay = document.getElementById('entryModalOverlay');
+  if (overlay) {
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) closeEntryModal();
+    });
+  }
+});
+
 </script>
 
+
+<!-- Entry Modal Overlay -->
+<div class="entry-modal-overlay" id="entryModalOverlay">
+  <div class="entry-panel entry-modal-box" id="entryModalClone"></div>
+</div>
 </body>
 </html>
