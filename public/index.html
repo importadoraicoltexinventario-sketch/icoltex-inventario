@@ -652,7 +652,7 @@ select, input, textarea, button { font-family: var(--sans); }
   background: #ffffff;
   border: none;
   border-radius: 12px;
-  padding: 16px 18px;
+  padding: 10px 14px;
   margin-bottom: 14px;
   border-left: 3px solid #1a5fd4;
   box-shadow: 0 2px 8px rgba(30,80,150,.08);
@@ -683,17 +683,23 @@ select, input, textarea, button { font-family: var(--sans); }
 .btn-edit-row:hover { background: #dbeafe; }
 
 .entry-form {
-  display: grid;
-  grid-template-columns: 130px 1fr 140px 140px 110px;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
   gap: 10px;
-  align-items: end;
+  flex-wrap: nowrap;
 }
+.entry-form .ef-group { flex-shrink: 0; }
+.entry-form .ef-group:nth-child(1) { width: 120px; }   /* Código */
+.entry-form .ef-group:nth-child(2) { flex: 1; min-width: 160px; } /* Descripción */
+.entry-form .ef-group:nth-child(3) { width: 160px; }  /* Ingresar Cantidad */
+.entry-form .ef-group:nth-child(4) { flex-shrink: 0; display: flex; gap: 8px; align-items: flex-end; } /* Botones */
 
-@media (max-width: 900px) {
-  .entry-form { grid-template-columns: 1fr 1fr 1fr; }
-}
 @media (max-width: 768px) {
-  .entry-form { grid-template-columns: 1fr 1fr; }
+  .entry-form { flex-wrap: wrap; }
+  .entry-form .ef-group:nth-child(1),
+  .entry-form .ef-group:nth-child(2),
+  .entry-form .ef-group:nth-child(3) { width: 100%; }
 }
 
 .ef-group label {
@@ -738,11 +744,11 @@ select, input, textarea, button { font-family: var(--sans); }
 .calc-input.has-value { border-color: #1a5fd4; background: #f0f6ff; }
 
 .calc-total-bar {
-  margin-top: 4px;
+  margin-top: 2px;
   font-family: var(--mono);
   font-size: 10px;
   color: #4a6fa5;
-  min-height: 15px;
+  min-height: 13px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1819,7 +1825,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
   padding-top: 60px;
 }
 .entry-modal-overlay.active { display: flex; }
-.entry-modal-slot { width: min(96vw, 720px); }
+.entry-modal-slot { width: min(96vw, 900px); }
 </style>
 </head>
 <body>
