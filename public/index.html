@@ -945,7 +945,6 @@ select, input, textarea, button { font-family: var(--sans); }
 .matrix-table tr.selectable { cursor: pointer; }
 .matrix-table tr.selectable:hover td { background: #f4f8ff !important; }
 .matrix-table tr.row-selected td { background: #e8f0fe !important; }
-.row-selected td:focus { outline: none !important; }
 td:focus { outline: none !important; box-shadow: none !important; }
 #matrizBody td { outline: none !important; }
 
@@ -1822,10 +1821,8 @@ td:focus { outline: none !important; box-shadow: none !important; }
   padding-top: 60px;
 }
 .entry-modal-overlay.active { display: flex; }
-.entry-modal-box {
-  width: min(96vw, 700px);
-  box-shadow: 0 8px 40px rgba(15,30,80,.22);
-  animation: fadeUp .2s ease;
+.entry-modal-slot {
+  width: min(96vw, 720px);
 }
 </style>
 </head>
@@ -4987,34 +4984,42 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-// ── Entry Modal JS ──
+// ── Entry Modal: mueve el panel original al overlay ──
+var _entryOriginalParent = null;
+var _entryOriginalNext   = null;
+
 function openEntryModal() {
-  const src = document.querySelector('.entry-panel');
-  const clone = document.getElementById('entryModalClone');
-  if (!src || !clone) return;
-  clone.innerHTML = src.innerHTML;
-  ['eCodigo','eDesc','eCalcInput'].forEach(function(id) {
-    const orig = document.getElementById(id);
-    const copy = clone.querySelector('#' + id);
-    if (orig && copy) copy.value = orig.value;
-  });
-  document.getElementById('entryModalOverlay').classList.add('active');
-  setTimeout(function() {
-    const inp = clone.querySelector('#eCalcInput');
-    if (inp && !inp.disabled) inp.focus();
-  }, 100);
-}
-function closeEntryModal() {
-  document.getElementById('entryModalOverlay').classList.remove('active');
-}
-document.addEventListener('DOMContentLoaded', function() {
+  var panel   = document.querySelector('.entry-panel');
+  var slot    = document.getElementById('entryModalSlot');
   var overlay = document.getElementById('entryModalOverlay');
-  if (overlay) {
-    overlay.addEventListener('click', function(e) {
-      if (e.target === overlay) closeEntryModal();
-    });
+  if (!panel || !slot || !overlay) return;
+  // Guardar posición original
+  _entryOriginalParent = panel.parentNode;
+  _entryOriginalNext   = panel.nextSibling;
+  // Mover al slot del modal
+  slot.appendChild(panel);
+  overlay.classList.add('active');
+  // Foco al input de cantidad
+  setTimeout(function() {
+    var inp = document.getElementById('eCalcInput');
+    if (inp && !inp.disabled) inp.focus();
+  }, 80);
+}
+
+function closeEntryModal() {
+  var panel   = document.querySelector('.entry-panel');
+  var overlay = document.getElementById('entryModalOverlay');
+  if (!panel || !overlay) return;
+  // Devolver el panel a su lugar original
+  if (_entryOriginalParent) {
+    if (_entryOriginalNext) {
+      _entryOriginalParent.insertBefore(panel, _entryOriginalNext);
+    } else {
+      _entryOriginalParent.appendChild(panel);
+    }
   }
-});
+  overlay.classList.remove('active');
+}
 
 </script>
 
@@ -5025,7 +5030,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <div class="entry-modal-overlay" id="entryModalOverlay">
-  <div class="entry-panel entry-modal-box" id="entryModalClone"></div>
+  <div class="entry-modal-slot" id="entryModalSlot"></div>
 </div>
 </body>
 </html>
