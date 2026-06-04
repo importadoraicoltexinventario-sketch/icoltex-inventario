@@ -652,7 +652,7 @@ select, input, textarea, button { font-family: var(--sans); }
   background: #ffffff;
   border: none;
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 16px 18px;
   margin-bottom: 14px;
   border-left: 3px solid #1a5fd4;
   box-shadow: 0 2px 8px rgba(30,80,150,.08);
@@ -667,7 +667,7 @@ select, input, textarea, button { font-family: var(--sans); }
   margin-bottom: 12px;
   background: #eff6ff;
   border-left: 3px solid #3b82f6;
-  padding: 3px 12px;
+  padding: 7px 12px;
   border-radius: 0 6px 6px 0;
 }
 .entry-label strong { color: #dc2626; font-size: 12px; }
@@ -683,23 +683,17 @@ select, input, textarea, button { font-family: var(--sans); }
 .btn-edit-row:hover { background: #dbeafe; }
 
 .entry-form {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: 130px 1fr 140px 140px 110px;
   gap: 10px;
-  flex-wrap: nowrap;
+  align-items: end;
 }
-.entry-form .ef-group { flex-shrink: 0; }
-.entry-form .ef-group:nth-child(1) { width: 120px; }   /* Código */
-.entry-form .ef-group:nth-child(2) { flex: 1; min-width: 160px; } /* Descripción */
-.entry-form .ef-group:nth-child(3) { width: 160px; }  /* Ingresar Cantidad */
-.entry-form .ef-group:nth-child(4) { flex-shrink: 0; display: flex; gap: 8px; align-items: flex-end; } /* Botones */
 
+@media (max-width: 900px) {
+  .entry-form { grid-template-columns: 1fr 1fr 1fr; }
+}
 @media (max-width: 768px) {
-  .entry-form { flex-wrap: wrap; }
-  .entry-form .ef-group:nth-child(1),
-  .entry-form .ef-group:nth-child(2),
-  .entry-form .ef-group:nth-child(3) { width: 100%; }
+  .entry-form { grid-template-columns: 1fr 1fr; }
 }
 
 .ef-group label {
@@ -744,11 +738,11 @@ select, input, textarea, button { font-family: var(--sans); }
 .calc-input.has-value { border-color: #1a5fd4; background: #f0f6ff; }
 
 .calc-total-bar {
-  margin-top: 2px;
+  margin-top: 4px;
   font-family: var(--mono);
   font-size: 10px;
   color: #4a6fa5;
-  min-height: 13px;
+  min-height: 15px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -1825,7 +1819,44 @@ td:focus { outline: none !important; box-shadow: none !important; }
   padding-top: 60px;
 }
 .entry-modal-overlay.active { display: flex; }
-.entry-modal-slot { width: min(96vw, 900px); }
+.entry-modal-slot { width: min(96vw, 720px); }
+
+/* ── Export Dropdown ── */
+.export-dropdown { position: relative; display: inline-flex; }
+.export-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 5px);
+  left: 0;
+  z-index: 500;
+  background: #fff;
+  border: 1.5px solid #d1e3f8;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(30,80,150,.14);
+  min-width: 190px;
+  padding: 5px;
+  animation: fadein .12s ease;
+}
+.export-dropdown-menu.open { display: block; }
+.export-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e3a6b;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--sans);
+  transition: background .12s;
+}
+.export-dropdown-item:hover { background: #eff6ff; color: #1a5fd4; }
+.export-dropdown-item svg { flex-shrink: 0; opacity: .7; }
 </style>
 </head>
 <body>
@@ -1956,9 +1987,22 @@ td:focus { outline: none !important; box-shadow: none !important; }
         <button class="btn" onclick="refrescarDatos()" title="Recargar datos del servidor" style="background:#e0f2fe;color:#0369a1;border:1.5px solid #7dd3fc;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refrescar
         </button>
-        <button class="btn btn-success btn-sm" onclick="exportJSON()">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Export JSON
-        </button>
+        <div class="export-dropdown" id="exportDropdownWrap">
+          <button class="btn btn-success btn-sm" onclick="toggleExportDropdown(event)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Export JSON
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-left:3px"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div class="export-dropdown-menu" id="exportDropdownMenu">
+            <button class="export-dropdown-item" onclick="exportJSON(); closeExportDropdown()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+              Backup completo
+            </button>
+            <button class="export-dropdown-item" onclick="exportActiveRecuento(); closeExportDropdown()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              Solo recuento activo
+            </button>
+          </div>
+        </div>
         <button class="btn btn-sm" onclick="openImportModal()">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Import JSON
         </button>
@@ -4997,5 +5041,38 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="entry-modal-overlay" id="entryModalOverlay">
   <div class="entry-modal-slot" id="entryModalSlot"></div>
 </div>
+
+function toggleExportDropdown(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('exportDropdownMenu');
+  menu.classList.toggle('open');
+}
+function closeExportDropdown() {
+  const menu = document.getElementById('exportDropdownMenu');
+  if (menu) menu.classList.remove('open');
+}
+document.addEventListener('click', function(e) {
+  const wrap = document.getElementById('exportDropdownWrap');
+  if (wrap && !wrap.contains(e.target)) closeExportDropdown();
+});
+function exportActiveRecuento() {
+  if (!activeInv || !DB[activeInv]) { showToast('⚠️ No hay recuento activo.'); return; }
+  const data = {
+    recuento: activeInv,
+    articulos: DB[activeInv].articulos,
+    fechaConteo: DB[activeInv].fechaConteo || '',
+    comentarios: DB[activeInv].comentarios || [],
+    exportedAt: new Date().toISOString(),
+    version: 4
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const nombre = activeInv.replace(/[^a-zA-Z0-9_-]/g, '_');
+  a.download = `Recuento_${nombre}_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  showToast('✅ Recuento activo exportado.');
+}
+
 </body>
 </html>
