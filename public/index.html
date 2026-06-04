@@ -1993,11 +1993,11 @@ td:focus { outline: none !important; box-shadow: none !important; }
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-left:3px"><polyline points="6 9 12 15 18 9"/></svg>
           </button>
           <div class="export-dropdown-menu" id="exportDropdownMenu">
-            <button class="export-dropdown-item" onclick="exportJSON(); closeExportDropdown()">
+            <button class="export-dropdown-item" onmousedown="exportJSON(); closeExportDropdown()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
               Backup completo
             </button>
-            <button class="export-dropdown-item" onclick="exportActiveRecuento(); closeExportDropdown()">
+            <button class="export-dropdown-item" onmousedown="exportActiveRecuento(); closeExportDropdown()">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               Solo recuento activo
             </button>
@@ -5051,17 +5051,21 @@ function closeExportDropdown() {
   const menu = document.getElementById('exportDropdownMenu');
   if (menu) menu.classList.remove('open');
 }
-document.addEventListener('click', function(e) {
+// Usar mousedown para cerrar ANTES del click, sin interferir con los items del menú
+document.addEventListener('mousedown', function(e) {
   const wrap = document.getElementById('exportDropdownWrap');
   if (wrap && !wrap.contains(e.target)) closeExportDropdown();
 });
 function exportActiveRecuento() {
   if (!activeInv || !DB[activeInv]) { showToast('⚠️ No hay recuento activo.'); return; }
+  const rec = DB[activeInv];
   const data = {
     recuento: activeInv,
-    articulos: DB[activeInv].articulos,
-    fechaConteo: DB[activeInv].fechaConteo || '',
-    comentarios: DB[activeInv].comentarios || [],
+    fecha: rec.fecha || '',
+    almacen: rec.almacen || '',
+    fechaConteo: rec.fechaConteo || '',
+    articulos: rec.articulos || [],
+    comentarios: rec.comentarios || [],
     exportedAt: new Date().toISOString(),
     version: 4
   };
@@ -5071,7 +5075,7 @@ function exportActiveRecuento() {
   const nombre = activeInv.replace(/[^a-zA-Z0-9_-]/g, '_');
   a.download = `Recuento_${nombre}_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
-  showToast('✅ Recuento activo exportado.');
+  showToast('\u2705 Recuento "' + activeInv + '" exportado.');
 }
 
 </body>
