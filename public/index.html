@@ -5042,6 +5042,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="entry-modal-slot" id="entryModalSlot"></div>
 </div>
 
+<script>
 function toggleExportDropdown(e) {
   e.stopPropagation();
   const menu = document.getElementById('exportDropdownMenu');
@@ -5051,7 +5052,6 @@ function closeExportDropdown() {
   const menu = document.getElementById('exportDropdownMenu');
   if (menu) menu.classList.remove('open');
 }
-// Usar mousedown para cerrar ANTES del click, sin interferir con los items del menú
 document.addEventListener('mousedown', function(e) {
   const wrap = document.getElementById('exportDropdownWrap');
   if (wrap && !wrap.contains(e.target)) closeExportDropdown();
@@ -5073,10 +5073,11 @@ function exportActiveRecuento() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   const nombre = activeInv.replace(/[^a-zA-Z0-9_-]/g, '_');
-  a.download = `Recuento_${nombre}_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = 'Recuento_' + nombre + '_' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
-  showToast('\u2705 Recuento "' + activeInv + '" exportado.');
+  showToast('✅ Recuento "' + activeInv + '" exportado.');
 }
+</script>
 
 </body>
 </html>
