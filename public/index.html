@@ -2453,7 +2453,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
     <h3>Importar sesión desde JSON</h3>
     <div class="modal-body">
     <p style="font-size:13px;color:#5a88b5;margin-bottom:16px;">
-      Carga un archivo exportado previamente para restaurar todos los datos: inventarios, usuarios y cronograma.
+      Carga un backup completo o un archivo de recuento individual exportado previamente.
     </p>
     <div class="import-zone" onclick="document.getElementById('importFile').click()">
       📂 Click para seleccionar un archivo .json
@@ -3042,13 +3042,26 @@ function handleImport(event) {
   reader.onload = e => {
     try {
       const d = JSON.parse(e.target.result);
-      if (!d.DB || !d.USERS) throw new Error("Formato inválido");
-      pendingImportData = d;
-      const invCount  = Object.keys(d.DB).length;
-      const userCount = d.USERS.length;
-      document.getElementById("importPreview").textContent =
-        `✅ Archivo válido: ${invCount} recuentos, ${userCount} usuarios. Exportado: ${(d.exportedAt||"").slice(0,10)||"—"}`;
-      document.getElementById("btnDoImport").disabled = false;
+
+      // Formato 1: backup completo (tiene DB y USERS)
+      if (d.DB && d.USERS) {
+        pendingImportData = { tipo: 'completo', data: d };
+        const invCount  = Object.keys(d.DB).length;
+        const userCount = d.USERS.length;
+        document.getElementById("importPreview").textContent =
+          `✅ Backup completo: ${invCount} recuentos, ${userCount} usuarios. Exportado: ${(d.exportedAt||"").slice(0,10)||"—"}`;
+        document.getElementById("btnDoImport").disabled = false;
+
+      // Formato 2: recuento activo (tiene recuento y articulos)
+      } else if (d.recuento && d.articulos) {
+        pendingImportData = { tipo: 'recuento', data: d };
+        document.getElementById("importPreview").textContent =
+          `✅ Recuento individual: "${d.recuento}" (${d.articulos.length} artículos). Exportado: ${(d.exportedAt||"").slice(0,10)||"—"}`;
+        document.getElementById("btnDoImport").disabled = false;
+
+      } else {
+        throw new Error("Formato inválido");
+      }
     } catch(err) {
       document.getElementById("importPreview").textContent = "⚠️ Archivo inválido: " + err.message;
       document.getElementById("btnDoImport").disabled = true;
@@ -3059,18 +3072,47 @@ function handleImport(event) {
 
 async function doImport() {
   if (!pendingImportData) return;
-  if (!await appConfirm('Se reemplazarán TODOS los datos actuales. Los cambios no guardados se perderán.', { titulo: '¿Importar datos?', icono: '📥', okLabel: 'Importar', okDanger: true })) return;
-  DB        = pendingImportData.DB;
-  USERS     = pendingImportData.USERS;
-  SCHEDULE  = pendingImportData.SCHEDULE  || JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
-  CAL_TEXTS = pendingImportData.CAL_TEXTS || {};
-  nextUserId= pendingImportData.nextUserId || 10;
-  saveToLocalStorage();
-  activeInv = Object.keys(DB)[0] || "";
-  buildInvSelector();
-  if (activeInv) loadInventory();
-  closeImportModal();
-  showToast("✅ Datos importados correctamente.");
+
+  // Importar backup completo
+  if (pendingImportData.tipo === 'completo') {
+    const d = pendingImportData.data;
+    if (!await appConfirm('Se reemplazarán TODOS los datos actuales. Los cambios no guardados se perderán.', { titulo: '¿Importar backup completo?', icono: '📥', okLabel: 'Importar', okDanger: true })) return;
+    DB        = d.DB;
+    USERS     = d.USERS;
+    SCHEDULE  = d.SCHEDULE  || JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+    CAL_TEXTS = d.CAL_TEXTS || {};
+    nextUserId= d.nextUserId || 10;
+    saveToLocalStorage();
+    activeInv = Object.keys(DB)[0] || "";
+    buildInvSelector();
+    if (activeInv) loadInventory();
+    closeImportModal();
+    showToast("✅ Datos importados correctamente.");
+
+  // Importar recuento individual
+  } else if (pendingImportData.tipo === 'recuento') {
+    const d = pendingImportData.data;
+    const nombre = d.recuento;
+    const existe = !!DB[nombre];
+    const msg = existe
+      ? `Se reemplazará el recuento "${nombre}" con los datos del archivo.`
+      : `Se agregará el recuento "${nombre}" a los datos actuales.`;
+    if (!await appConfirm(msg, { titulo: '¿Importar recuento?', icono: '📄', okLabel: 'Importar', okDanger: existe })) return;
+    DB[nombre] = {
+      fecha: d.fecha || '',
+      almacen: d.almacen || '',
+      fechaConteo: d.fechaConteo || '',
+      articulos: d.articulos || [],
+      comentarios: d.comentarios || []
+    };
+    saveToLocalStorage();
+    activeInv = nombre;
+    buildInvSelector();
+    document.getElementById("selInv").value = nombre;
+    loadInventory();
+    closeImportModal();
+    showToast(`✅ Recuento "${nombre}" importado correctamente.`);
+  }
 }
 
 // ══════════════════════════════════
