@@ -3392,7 +3392,7 @@ function onCalcKey(e) {
     if (!expr) { submitEntry(); return; }
     const val = evalCalcExpr(expr);
     if (val === null || isNaN(val)) { showToast("⚠️ Expresión inválida: " + expr); return; }
-    calcRunningTotal += val;
+    calcRunningTotal = Math.round((calcRunningTotal + val) * 10000) / 10000;
     calcLog.push(`${expr} = ${fmt(val)}`);
     inp.value = "";
     calcCurrentExpr = "";
@@ -3435,12 +3435,24 @@ function renderCalcHistory() {
 
 function openCalcHistModal() {
   const body = document.getElementById("calcHistModalBody");
+  const usingSaved = calcLog.length === 0 && selectedRow !== null && DB[activeInv]?.articulos[selectedRow]?._calcLog?.length > 0;
   const logToShow = calcLog.length > 0 ? calcLog
     : (selectedRow !== null && DB[activeInv]?.articulos[selectedRow]?._calcLog || []);
 
   if (logToShow.length === 0) {
     body.innerHTML = `<div style="text-align:center;color:#9ab3cc;padding:20px 0;font-style:italic;">Sin entradas registradas</div>`;
+    document.getElementById("calcHistModalTotal").textContent = `Total: 0,00`;
   } else {
+    // Calcular total desde el log (suma de los valores después del "= ")
+    const totalFromLog = usingSaved
+      ? Math.round(logToShow.reduce((acc, l) => {
+          const part = l.split(' = ')[1];
+          if (!part) return acc;
+          const n = parseFloat(part.replace(',', '.'));
+          return isNaN(n) ? acc : Math.round((acc + n) * 10000) / 10000;
+        }, 0) * 10000) / 10000
+      : calcRunningTotal;
+
     body.innerHTML = logToShow.map((l, i) => `
       <div class="calc-history-row">
         <span style="color:#9ab3cc;min-width:20px;">${i+1}.</span>
@@ -3450,10 +3462,10 @@ function openCalcHistModal() {
     `).join("") + `
       <div class="calc-history-row">
         <span style="flex:1;">TOTAL</span>
-        <span>${fmt(calcRunningTotal)}</span>
+        <span>${fmt(totalFromLog)}</span>
       </div>`;
+    document.getElementById("calcHistModalTotal").textContent = `Total: ${fmt(totalFromLog)}`;
   }
-  document.getElementById("calcHistModalTotal").textContent = `Total: ${fmt(calcRunningTotal)}`;
   document.getElementById("modalCalcHist").classList.remove("hidden");
 }
 
@@ -3595,17 +3607,14 @@ function selectRow(i) {
     tr.classList.toggle("row-selected", idx === i);
   });
 
-  // Calculadora: restaura historial guardado sin borrar nada
+  // Calculadora: restaura historial guardado
   const savedLog = item._calcLog ? [...item._calcLog] : [];
   const savedTotal = item.fisico || 0;
 
-  // Solo limpiar si la fila que se selecciona es distinta a la actual
-  if (selectedRow !== i || calcLog.length === 0) {
-    calcLog = savedLog;
-    calcRunningTotal = savedTotal;
-    document.getElementById("eCalcInput").value = "";
-    document.getElementById("calcTotalBar").innerHTML = "";
-  }
+  calcLog = savedLog;
+  calcRunningTotal = savedTotal;
+  document.getElementById("eCalcInput").value = "";
+  document.getElementById("calcTotalBar").innerHTML = "";
 
   if (calcRunningTotal > 0 || calcLog.length > 0) updateCalcTotalBar(0);
   renderCalcHistory();
@@ -3645,13 +3654,13 @@ function submitEntry() {
   if (inputVal) {
     const v = evalCalcExpr(inputVal);
     if (v !== null && !isNaN(v)) {
-      calcRunningTotal += v;
+      calcRunningTotal = Math.round((calcRunningTotal + v) * 10000) / 10000;
       calcLog.push(`${inputVal} = ${fmt(v)}`);
       document.getElementById("eCalcInput").value = "";
     }
   }
 
-  const total = calcRunningTotal > 0 ? calcRunningTotal : 0;
+  const total = Math.round(calcRunningTotal * 10000) / 10000;
 
   // Guardar en DB ANTES de cualquier clear
   DB[activeInv].articulos[savedRow].fisico = total;
