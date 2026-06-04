@@ -3943,13 +3943,13 @@ function renderAnalisis() {
         <div style="margin-bottom:16px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-size:12px;font-weight:600;color:#475569;">Diferencia General</span>
-            <span style="font-size:20px;font-weight:800;color:#f43f5e;font-family:var(--mono);">${pctDifGen}%</span>
+            <span style="font-size:20px;font-weight:800;color:${pctDifGen < 0 ? '#f43f5e' : '#10b981'};font-family:var(--mono);">${pctDifGen >= 0 ? '+' : ''}${pctDifGen}%</span>
           </div>
           <div style="background:#f1f5f9;border-radius:999px;height:10px;overflow:hidden;">
-            <div style="height:100%;width:${pctDifGen}%;background:linear-gradient(90deg,#f43f5e,#fb7185);border-radius:999px;transition:width .6s ease;"></div>
+            <div style="height:100%;width:${Math.abs(pctDifGen)}%;background:${pctDifGen < 0 ? 'linear-gradient(90deg,#f43f5e,#fb7185)' : 'linear-gradient(90deg,#10b981,#34d399)'};border-radius:999px;transition:width .6s ease;"></div>
           </div>
           <div style="display:flex;gap:8px;margin-top:8px;">
-            <span style="font-size:11px;font-weight:700;background:#fff1f2;border:1px solid #fecdd3;color:#f43f5e;padding:4px 10px;border-radius:8px;font-family:var(--mono);">Dif: ${fmt(totalDifAbs)}</span>
+            <span style="font-size:11px;font-weight:700;background:${totalDifNeta < 0 ? '#fff1f2' : '#f0fdf4'};border:1px solid ${totalDifNeta < 0 ? '#fecdd3' : '#bbf7d0'};color:${totalDifNeta < 0 ? '#f43f5e' : '#10b981'};padding:4px 10px;border-radius:8px;font-family:var(--mono);">Dif: ${totalDifNeta >= 0 ? '+' : ''}${fmt(totalDifNeta)}</span>
             <span style="font-size:11px;font-weight:700;background:#f8fafc;border:1px solid #e2e8f0;color:#64748b;padding:4px 10px;border-radius:8px;font-family:var(--mono);">SAP: ${fmt(totalSap)}</span>
           </div>
         </div>
