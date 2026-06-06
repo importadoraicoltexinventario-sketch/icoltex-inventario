@@ -2690,55 +2690,113 @@ function appConfirmCancel() {
 // ══════════════════════════════════
 let _ws = null;
 let _notifList = [];
+let _bc = null;   // BroadcastChannel para comunicación entre pestañas
+let _ws = null;   // mantenemos la variable por compatibilidad
 
-function apiUrl(path) { return path; }
+// ══════════════════════════════════════════════════════════════
+//  SISTEMA DE NOTIFICACIONES OFFLINE
+//  Usa localStorage + BroadcastChannel (no requiere servidor)
+// ══════════════════════════════════════════════════════════════
 
-async function apiFetch(path, opts={}) {
-  try {
-    const fetchOpts = {
-      method: opts.method || 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin'
-    };
-    if (opts.body) fetchOpts.body = JSON.stringify(opts.body);
-    const r = await fetch(path, fetchOpts);
-    if (!r.ok) {
-      const e = await r.json().catch(()=>({error:r.statusText}));
-      throw new Error(e.error || r.statusText);
-    }
-    return r.json();
-  } catch(e) {
-    console.error('API error:', path, e.message);
-    throw e;
-  }
+const NOTIF_KEY = 'inventarioPro_notifs';
+
+function _getNotifStore() {
+  try { return JSON.parse(localStorage.getItem(NOTIF_KEY) || '{}'); } catch { return {}; }
+}
+function _saveNotifStore(store) {
+  localStorage.setItem(NOTIF_KEY, JSON.stringify(store));
 }
 
+// Crea y guarda una notificación para un usuario destino
+function _crearNotif(userId, mensaje) {
+  const store = _getNotifStore();
+  if (!store[userId]) store[userId] = [];
+  const notif = { _id: Date.now() + '_' + Math.random().toString(36).slice(2), mensaje, leida: false, creado: new Date().toISOString() };
+  store[userId].unshift(notif);
+  // Máximo 50 notificaciones por usuario
+  store[userId] = store[userId].slice(0, 50);
+  _saveNotifStore(store);
+  return notif;
+}
+
+// Carga notificaciones del usuario actual
+function _cargarNotifs() {
+  if (!currentUser) return;
+  const store = _getNotifStore();
+  _notifList = store[currentUser.id] || [];
+  renderNotifPanel();
+}
+
+// Enviar notificación a un usuario (o a todos si userId=null)
+function enviarNotifA(userId, mensaje) {
+  const notif = _crearNotif(userId, mensaje);
+  // Difundir a otras pestañas en tiempo real
+  if (_bc) {
+    try { _bc.postMessage({ tipo: 'nueva_notificacion', userId, datos: notif }); } catch(e) {}
+  }
+  mostrarNotifPush(mensaje);
+}
+
+// Enviar notificación a todos los admins
+function notificarAdmins(mensaje) {
+  const admins = USERS.filter(u => u.rol === 'admin');
+  admins.forEach(u => enviarNotifA(u.id, mensaje));
+}
+
+// Sustituye conectarWS — inicia BroadcastChannel
 function conectarWS() {
   if (!currentUser) return;
-  if (_ws && (_ws.readyState === WebSocket.OPEN || _ws.readyState === WebSocket.CONNECTING)) return;
-  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  _ws = new WebSocket(proto + '//' + location.host);
-  _ws.onopen = () => {
-    _ws.send(JSON.stringify({ tipo: 'registro', userId: currentUser.id }));
-  };
-  _ws.onmessage = (evt) => {
-    try {
-      const msg = JSON.parse(evt.data);
-      if (msg.tipo === 'notificaciones_pendientes') {
-        _notifList = msg.datos || [];
-        renderNotifPanel();
-      } else if (msg.tipo === 'nueva_notificacion') {
+  _cargarNotifs();
+
+  // BroadcastChannel: comunicación real en tiempo real entre pestañas del mismo origen
+  if ('BroadcastChannel' in window) {
+    if (_bc) { try { _bc.close(); } catch(e) {} }
+    _bc = new BroadcastChannel('inventario_pro_v4');
+    _bc.onmessage = (evt) => {
+      const msg = evt.data;
+      if (!msg) return;
+
+      // Notificación dirigida a este usuario
+      if (msg.tipo === 'nueva_notificacion' && String(msg.userId) === String(currentUser.id)) {
         _notifList.unshift(msg.datos);
         renderNotifPanel();
         showToast('🔔 ' + msg.datos.mensaje);
         mostrarNotifPush(msg.datos.mensaje);
-      } else if (msg.tipo === 'recuento_actualizado') {
-        // Recargar datos del recuento actualizado en tiempo real
-        actualizarRecuentoEnVivo(msg.nombre);
       }
-    } catch(e) {}
-  };
-  _ws.onclose = () => { setTimeout(conectarWS, 3000); };
+
+      // Otro usuario guardó cambios → sincronizar DB en tiempo real
+      if (msg.tipo === 'recuento_actualizado') {
+        actualizarRecuentoEnVivo(msg.nombre, msg.articulos, msg.fechaConteo, msg.comentarios);
+      }
+    };
+  }
+
+  // Escuchar cambios de localStorage desde otras pestañas (fallback)
+  window.addEventListener('storage', (e) => {
+    if (e.key === NOTIF_KEY) _cargarNotifs();
+    if (e.key === 'inventarioPro_db') {
+      try {
+        const newDB = JSON.parse(e.newValue || '{}').DB;
+        if (newDB) { DB = newDB; if (activeInv) { renderMatrix(); } }
+      } catch(e2) {}
+    }
+  });
+
+  solicitarPermisoPush();
+}
+
+// Broadcast cuando se guarda el DB (para sincronizar otras pestañas)
+function broadcastRecuentoActualizado(nombre) {
+  if (!_bc || !DB[nombre]) return;
+  try {
+    _bc.postMessage({
+      tipo: 'recuento_actualizado',
+      nombre,
+      articulos: DB[nombre].articulos,
+      fechaConteo: DB[nombre].fechaConteo,
+      comentarios: DB[nombre].comentarios || []
+    });
+  } catch(e) {}
 }
 
 // ══════════════════════════════════
@@ -2748,7 +2806,7 @@ function solicitarPermisoPush() {
   if (!('Notification' in window)) return;
   if (Notification.permission === 'default') {
     Notification.requestPermission().then(perm => {
-      if (perm === 'granted') showToast('🔔 Notificaciones activadas.');
+      if (perm === 'granted') showToast('🔔 Notificaciones del navegador activadas.');
     });
   }
 }
@@ -2756,31 +2814,25 @@ function solicitarPermisoPush() {
 function mostrarNotifPush(mensaje) {
   if (!('Notification' in window)) return;
   if (Notification.permission !== 'granted') return;
-  // Solo mostrar si la pestaña NO está activa
-  if (document.visibilityState === 'visible') return;
   try {
-    new Notification('App Inventario Pro v4', {
-      body: mensaje,
-      icon: '/favicon.ico'
-    });
+    new Notification('App Inventario Pro v4', { body: mensaje, icon: '/favicon.ico' });
   } catch(e) {}
 }
 
-// Actualizar recuento en vivo cuando otro usuario guarda cambios
-async function actualizarRecuentoEnVivo(nombre) {
+// Actualizar recuento en vivo (datos recibidos por BroadcastChannel)
+function actualizarRecuentoEnVivo(nombre, articulos, fechaConteo, comentarios) {
   if (!nombre || !DB[nombre]) return;
-  try {
-    const recuentos = await apiFetch('/api/recuentos');
-    const r = recuentos.find(x => x.nombre === nombre);
-    if (!r) return;
-    DB[nombre] = { ...DB[nombre], articulos: r.articulos || [], fechaConteo: r.fechaConteo, comentarios: r.comentarios || [] };
-    if (nombre === activeInv) {
-      renderMatrix();
-      showToast('🔄 Datos actualizados en tiempo real.');
-    }
-    renderHistory();
-  } catch(e) {}
+  if (articulos) DB[nombre].articulos = articulos;
+  if (fechaConteo) DB[nombre].fechaConteo = fechaConteo;
+  if (comentarios) DB[nombre].comentarios = comentarios;
+  if (nombre === activeInv) {
+    renderMatrix();
+    showToast('🔄 Datos actualizados en tiempo real.');
+  }
 }
+
+// apiFetch: stub que resuelve vacío para no romper código que lo llame
+async function apiFetch(path, opts={}) { return {}; }
 
 function toggleNotifPanel() {
   const p = document.getElementById('notifPanel');
@@ -2829,29 +2881,29 @@ function renderNotifPanel() {
   }).join('');
 }
 
-async function leerNotif(i) {
+function _persistNotifs() {
+  if (!currentUser) return;
+  const store = _getNotifStore();
+  store[currentUser.id] = _notifList;
+  _saveNotifStore(store);
+}
+
+function leerNotif(i) {
   const n = _notifList[i];
   if (!n || n.leida) return;
-  await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
   n.leida = true;
+  _persistNotifs();
   renderNotifPanel();
 }
 
-async function abrirNotifRecuento(i) {
+function abrirNotifRecuento(i) {
   const n = _notifList[i];
   if (!n) return;
-  // Marcar como leída
-  if (!n.leida) {
-    await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
-    n.leida = true;
-  }
-  // Extraer nombre del recuento del mensaje
+  if (!n.leida) { n.leida = true; _persistNotifs(); }
   const match = n.mensaje && (n.mensaje.match(/"([^"]+)"/) || n.mensaje.match(/recuento\s+"?([^"]+)"?/i));
   const nombre = match ? match[1] : null;
-  // Cerrar panel
   document.getElementById('notifPanel').style.display = 'none';
   renderNotifPanel();
-  // Ir al recuento
   if (nombre && DB && DB[nombre]) {
     activeInv = nombre;
     document.getElementById("selInv").value = nombre;
@@ -2861,30 +2913,28 @@ async function abrirNotifRecuento(i) {
   }
 }
 
-async function eliminarNotif(i) {
-  const n = _notifList[i];
-  if (!n) return;
-  await apiFetch('/api/notificaciones/'+n._id+'/leer', {method:'PUT'}).catch(()=>{});
+function eliminarNotif(i) {
   _notifList.splice(i, 1);
+  _persistNotifs();
   renderNotifPanel();
 }
 
-async function eliminarTodasNotifs() {
-  await apiFetch('/api/notificaciones/leer-todas', {method:'PUT'}).catch(()=>{});
+function eliminarTodasNotifs() {
   _notifList = [];
+  _persistNotifs();
   renderNotifPanel();
   showToast('✅ Notificaciones limpiadas.');
 }
 
-async function marcarTodasLeidas() {
-  await apiFetch('/api/notificaciones/leer-todas', {method:'PUT'}).catch(()=>{});
+function marcarTodasLeidas() {
   _notifList.forEach(n => n.leida = true);
+  _persistNotifs();
   renderNotifPanel();
 }
 
 // Para que el operador avise al admin que terminó
-async function avisarCompletado(recuento) {
-  await apiFetch('/api/notificaciones/aviso-completado', {method:'POST', body:{recuento}}).catch(()=>{});
+function avisarCompletado(recuento) {
+  notificarAdmins(`✅ El operador "${currentUser.nombre||currentUser.email}" completó el conteo del recuento "${recuento}".`);
   showToast('✅ Admin notificado que completaste el conteo.');
 }
 
@@ -2979,19 +3029,16 @@ function markDirty() {
   _saveTimer = setTimeout(() => guardarRecuentoActivo(), 2000);
 }
 
-async function guardarRecuentoActivo() {
+function guardarRecuentoActivo() {
   if (!activeInv || !DB[activeInv]) return;
   try {
-    await apiFetch('/api/recuentos/' + encodeURIComponent(activeInv), {
-      method: 'PUT',
-      body: {
-        articulos: DB[activeInv].articulos,
-        fechaConteo: DB[activeInv].fechaConteo || '',
-        comentarios: DB[activeInv].comentarios || []
-      }
-    });
+    // Guardar toda la DB en localStorage
+    const payload = { DB, USERS, SCHEDULE, CAL_TEXTS, nextUserId };
+    localStorage.setItem('inventarioPro_db', JSON.stringify(payload));
     isDirty = false;
     updateSaveIndicator();
+    // Avisar a otras pestañas en tiempo real
+    broadcastRecuentoActualizado(activeInv);
   } catch(e) {
     showToast('⚠️ Error guardando: ' + e.message);
   }
@@ -3195,7 +3242,8 @@ async function doLogout() {
   const msg = isDirty ? 'Tienes cambios sin guardar que se perderán.' : '¿Deseas cerrar tu sesión?';
   if (!await appConfirm(msg, { titulo: '¿Cerrar sesión?', icono: '🚪', okLabel: 'Sí, salir', okDanger: false })) return;
   await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
-  if (_ws) { _ws.onclose = null; _ws.close(); _ws = null; }
+  if (_bc) { try { _bc.close(); } catch(e) {} _bc = null; }
+  _ws = null;
   document.getElementById("viewApp").classList.add("hidden");
   document.getElementById("viewLogin").classList.remove("hidden");
   document.body.style.cssText = "display:flex;align-items:center;justify-content:center;min-height:100vh;padding:0;background:var(--bg);";
