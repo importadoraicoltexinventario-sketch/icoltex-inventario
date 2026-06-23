@@ -1858,15 +1858,144 @@ td:focus { outline: none !important; box-shadow: none !important; }
 .export-dropdown-item:hover { background: #eff6ff; color: #1a5fd4; }
 .export-dropdown-item svg { flex-shrink: 0; opacity: .7; }
 
-/* ══════════════════════════════
-   LISTA DE RECUENTOS — PANELES POR OPERADOR
-══════════════════════════════ */
-#historyGrid {
+/* ══ HISTORIAL: NIVEL 1 — Cards de operador ══ */
+.hg-op-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border2);
+  border-radius: 14px;
+  padding: 18px 20px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 12px 0;
+  align-items: center;
+  transition: all .18s;
+  box-shadow: 0 2px 8px rgba(20,60,120,.05);
+  position: relative;
+}
+.hg-op-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(20,60,120,.12);
+  transform: translateY(-2px);
+}
+.hg-op-card-gray { border-color: #e2e8f0; }
+.hg-op-card-gray:hover { border-color: #94a3b8; }
+
+.hg-op-left {
   display: flex;
-  flex-direction: column;
-  gap: 18px;
+  align-items: center;
+  gap: 14px;
+}
+.hg-op-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 800;
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+.hg-op-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -.2px;
+}
+.hg-op-email {
+  font-size: 11px;
+  color: var(--text3);
+  font-family: var(--mono);
+  margin-top: 2px;
+}
+.hg-op-right {
+  text-align: right;
+  padding-right: 36px;
+}
+.hg-op-count {
+  font-size: 28px;
+  font-weight: 800;
+  font-family: var(--mono);
+  line-height: 1;
+}
+.hg-op-count-label {
+  font-size: 10px;
+  color: var(--text3);
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.hg-op-progress-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.hg-op-progress-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.hg-op-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width .5s ease;
+}
+.hg-op-pct {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--mono);
+  color: var(--text2);
+  white-space: nowrap;
+}
+.hg-op-arrow {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text3);
+  transition: transform .18s, color .18s;
+}
+.hg-op-card:hover .hg-op-arrow {
+  color: var(--accent);
+  transform: translateY(-50%) translateX(3px);
 }
 
+/* ══ HISTORIAL: Breadcrumb / volver ══ */
+.hg-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text3);
+  font-family: var(--mono);
+}
+.hg-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface);
+  border: 1.5px solid var(--border2);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--sans);
+  transition: all .15s;
+}
+.hg-back-btn:hover { background: var(--red-bg); border-color: var(--accent); }
+.hg-breadcrumb-sep { font-size: 14px; color: var(--border); }
+.hg-breadcrumb-cur { font-weight: 700; color: var(--text); font-family: var(--sans); font-size: 12px; }
+
+/* ══ HISTORIAL: Nivel 2 — panel + cards ══ */
 .hg-panel {
   background: var(--surface);
   border: 1.5px solid var(--border2);
@@ -1874,7 +2003,6 @@ td:focus { outline: none !important; box-shadow: none !important; }
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(20,60,120,.06);
 }
-
 .hg-header {
   display: flex;
   align-items: center;
@@ -1883,7 +2011,6 @@ td:focus { outline: none !important; box-shadow: none !important; }
   background: var(--surface2);
   border-bottom: 1px solid var(--border2);
 }
-
 .hg-avatar {
   width: 36px;
   height: 36px;
@@ -1896,19 +2023,17 @@ td:focus { outline: none !important; box-shadow: none !important; }
   flex-shrink: 0;
   font-family: var(--mono);
 }
-
-.hg-header-info { flex: 1; min-width: 0; }
-.hg-title { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -.2px; }
+.hg-header-info { flex: 1; }
+.hg-title { font-size: 13px; font-weight: 700; color: var(--text); }
 .hg-sub { font-size: 10px; color: var(--text3); font-family: var(--mono); margin-top: 1px; }
-
 .hg-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   gap: 10px;
   padding: 14px;
 }
 
-/* ── Card individual ── */
+/* ══ Card de recuento ══ */
 .hc2-card {
   background: var(--surface);
   border: 1.5px solid var(--border2);
@@ -1917,7 +2042,6 @@ td:focus { outline: none !important; box-shadow: none !important; }
   cursor: pointer;
   transition: all .18s;
   box-shadow: 0 1px 4px rgba(20,60,120,.05);
-  position: relative;
 }
 .hc2-card:hover {
   border-color: var(--accent);
@@ -1929,86 +2053,27 @@ td:focus { outline: none !important; box-shadow: none !important; }
   background: #f0f7ff !important;
   box-shadow: 0 0 0 3px rgba(59,130,246,.12) !important;
 }
-
-.hc2-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 6px;
-  margin-bottom: 6px;
-}
-.hc2-name {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.3;
-  letter-spacing: -.1px;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.hc2-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 6px; }
+.hc2-name { font-size: 12px; font-weight: 700; color: var(--text); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .hc2-dot { color: #3b82f6; font-size: 10px; }
-
-.hc2-meta {
-  display: flex;
-  gap: 10px;
-  font-size: 10px;
-  color: var(--text3);
-  font-family: var(--mono);
-  margin-bottom: 8px;
-}
-
-.hc2-progress-wrap {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-.hc2-progress-bar {
-  flex: 1;
-  height: 5px;
-  background: var(--border2);
-  border-radius: 999px;
-  overflow: hidden;
-}
-.hc2-progress-fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width .4s ease;
-}
-.hc2-pct {
-  font-size: 10px;
-  font-weight: 700;
-  font-family: var(--mono);
-  color: var(--text2);
-  min-width: 28px;
-  text-align: right;
-}
-
-.hc2-pills {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
-}
-.hc2-pill {
-  font-size: 9px;
-  font-weight: 700;
-  font-family: var(--mono);
-  padding: 2px 6px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
+.hc2-meta { display: flex; gap: 10px; font-size: 10px; color: var(--text3); font-family: var(--mono); margin-bottom: 8px; }
+.hc2-progress-wrap { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.hc2-progress-bar { flex: 1; height: 5px; background: var(--border2); border-radius: 999px; overflow: hidden; }
+.hc2-progress-fill { height: 100%; border-radius: 999px; transition: width .4s ease; }
+.hc2-pct { font-size: 10px; font-weight: 700; font-family: var(--mono); color: var(--text2); min-width: 28px; text-align: right; }
+.hc2-pills { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.hc2-pill { font-size: 9px; font-weight: 700; font-family: var(--mono); padding: 2px 6px; border-radius: 4px; }
 .hc2-pill-total { background: var(--surface2); color: var(--text2); }
 .hc2-pill-ok    { background: #e8f7ef; color: #1a7a4a; }
 .hc2-pill-diff  { background: #fff3e0; color: #b45309; }
 .hc2-pill-pend  { background: var(--surface3); color: var(--text3); }
-.hc2-pill-dif   { font-size: 10px; padding: 2px 8px; border-radius: 5px; }
+.hc2-pill-dif   { font-size: 10px; padding: 2px 8px; border-radius: 5px; margin-left: auto; }
 .hc2-pill-dif.neg  { background: var(--red-bg); color: var(--accent); }
 .hc2-pill-dif.pos  { background: #e8f7ef; color: #10b981; }
 .hc2-pill-dif.zero { background: var(--surface2); color: var(--text3); }
+
+/* historyGrid layout */
+#historyGrid { display: flex; flex-direction: column; gap: 12px; }
 
 </style>
 </head>
@@ -2796,6 +2861,7 @@ async function sha256(str) {
 //  ESTADO
 // ══════════════════════════════════
 let DB, USERS, SCHEDULE, CAL_TEXTS;
+let _historialFiltroUserId = null; // null = vista de operadores, string = vista de recuentos del operador
 let role = "", currentUser = null;
 let activeInv = "", selectedRow = null, editingUserId = null;
 let sidebarOpen = false;
@@ -3394,7 +3460,7 @@ function goView(v) {
     if (el) el.classList.toggle("active", k === v);
   });
   document.getElementById("topTitle").textContent = TITLES[v];
-  if (v === "historial")  renderHistory();
+  if (v === "historial")  { if (role === "admin") _historialFiltroUserId = null; renderHistory(); }
   if (v === "analisis")   { buildAnalisisSelector(); renderAnalisis(); }
   if (v === "cronograma") {
     if (role === "admin") {
@@ -3913,16 +3979,63 @@ function renderHistory() {
   const grid  = document.getElementById("historyGrid");
   const empty = document.getElementById("historyEmpty");
   grid.innerHTML = "";
-  let keys = Object.keys(DB);
-  if (role === "operador") keys = keys.filter(k => currentUser.ops.includes(k));
 
-  if (keys.length === 0) {
-    empty.classList.remove("hidden");
-    return;
+  let keys = Object.keys(DB);
+  if (role === "operador") {
+    keys = keys.filter(k => currentUser.ops.includes(k));
+    _historialFiltroUserId = currentUser.id;
   }
+
+  if (keys.length === 0) { empty.classList.remove("hidden"); return; }
   empty.classList.add("hidden");
 
-  // Agrupar por operador asignado
+  // ── NIVEL 2: recuentos de un operador ──
+  if (_historialFiltroUserId !== null) {
+    let filteredKeys = keys;
+    let opUser = null;
+
+    if (role === "admin") {
+      if (_historialFiltroUserId === "__sinasignar__") {
+        filteredKeys = keys.filter(name => {
+          const asignados = (USERS||[]).filter(u => u.rol === "operador" && u.ops && u.ops.includes(name));
+          return asignados.length === 0;
+        });
+      } else {
+        opUser = (USERS||[]).find(u => String(u.id) === String(_historialFiltroUserId));
+        filteredKeys = opUser && opUser.ops ? keys.filter(k => opUser.ops.includes(k)) : [];
+      }
+    }
+
+    // Header con botón volver
+    const titulo = _historialFiltroUserId === "__sinasignar__" ? "Sin asignar"
+      : (opUser ? (opUser.nombre || opUser.email) : "");
+    const subtitulo = _historialFiltroUserId === "__sinasignar__" ? "Recuentos sin operador asignado"
+      : (opUser ? opUser.email : "");
+
+    grid.insertAdjacentHTML("beforeend", `
+      <div class="hg-breadcrumb">
+        <button class="hg-back-btn" onclick="_historialFiltroUserId=null;renderHistory();">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Todos los operadores
+        </button>
+        <span class="hg-breadcrumb-sep">›</span>
+        <span class="hg-breadcrumb-cur">${titulo}</span>
+      </div>
+      <div class="hg-panel" style="margin-bottom:0;">
+        <div class="hg-header" style="border-left:3px solid #3b82f6;">
+          <div class="hg-avatar" style="background:#3b82f620;color:#3b82f6;">${titulo.charAt(0).toUpperCase()}</div>
+          <div class="hg-header-info">
+            <div class="hg-title">${titulo}</div>
+            <div class="hg-sub">${subtitulo} &nbsp;·&nbsp; ${filteredKeys.length} recuento${filteredKeys.length!==1?"s":""}</div>
+          </div>
+        </div>
+        <div class="hg-cards">${filteredKeys.map(cardHTML).join("")}</div>
+      </div>
+    `);
+    return;
+  }
+
+  // ── NIVEL 1: cards por operador ──
   const grupos = {};
   const sinAsignar = [];
 
@@ -3938,82 +4051,114 @@ function renderHistory() {
     }
   });
 
-  function cardHTML(name) {
-    const inv = DB[name];
-    const arts = inv.articulos;
-    const total      = arts.length;
-    const exactos    = arts.filter(a => Math.abs(a.fisico - a.sap) <= 0.001 && (a.fisico > 0 || a._contado)).length;
-    const conDif     = arts.filter(a => Math.abs(a.fisico - a.sap) > 0.001).length;
-    const pendientes = arts.filter(a => !a._contado && a.fisico === 0).length;
-    const pct        = total > 0 ? Math.round(((total - pendientes) / total) * 100) : 0;
-    const totalDif   = arts.reduce((s,a) => s + (a.fisico - a.sap), 0);
-    const difClass   = totalDif < -0.001 ? "neg" : totalDif > 0.001 ? "pos" : "zero";
-    const difSign    = totalDif > 0.001 ? "+" : "";
-    const isActive   = name === activeInv;
-    const ne = name.replace(/'/g,"\'");
-    const barColor   = pct === 100 ? "#10b981" : pct > 50 ? "#3b82f6" : "#f59e0b";
-    const delBtn     = role === "admin"
-      ? `<button class="btn btn-danger btn-sm" style="padding:2px 7px;font-size:10px;line-height:1.4;" onclick="event.stopPropagation();deleteInventory('${ne}')">
-           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-         </button>` : "";
-    return `
-      <div class="hc2-card${isActive ? " hc2-active" : ""}" onclick="switchToInv('${ne}')">
-        <div class="hc2-top">
-          <div class="hc2-name">${esc(name)}${isActive ? '<span class="hc2-dot"> ●</span>' : ""}</div>
-          ${delBtn}
-        </div>
-        <div class="hc2-meta">
-          <span>📅 ${inv.fecha||"—"}</span>
-          <span>🏭 ${inv.almacen||"—"}</span>
-        </div>
-        <div class="hc2-progress-wrap">
-          <div class="hc2-progress-bar"><div class="hc2-progress-fill" style="width:${pct}%;background:${barColor};"></div></div>
-          <span class="hc2-pct">${pct}%</span>
-        </div>
-        <div class="hc2-pills">
-          <span class="hc2-pill hc2-pill-total">${total} refs</span>
-          <span class="hc2-pill hc2-pill-ok">✓ ${exactos}</span>
-          <span class="hc2-pill hc2-pill-diff">⚠ ${conDif}</span>
-          <span class="hc2-pill hc2-pill-pend">⏳ ${pendientes}</span>
-          <span class="hc2-pill hc2-pill-dif ${difClass}" style="margin-left:auto;">${difSign}${fmt(totalDif)}</span>
-        </div>
-      </div>`;
-  }
+  const colors = ["#3b82f6","#10b981","#f59e0b","#8b5cf6","#ef4444","#06b6d4"];
 
-  function panelHTML(titulo, subtitulo, inicial, color, recuentos) {
-    return `
-      <div class="hg-panel">
-        <div class="hg-header" style="border-left:3px solid ${color};">
-          <div class="hg-avatar" style="background:${color}20;color:${color};">${inicial}</div>
-          <div class="hg-header-info">
-            <div class="hg-title">${titulo}</div>
-            <div class="hg-sub">${subtitulo} &nbsp;·&nbsp; ${recuentos.length} recuento${recuentos.length>1?"s":""}</div>
+  Object.values(grupos).forEach((g, i) => {
+    const color = colors[i % colors.length];
+    const totalRefs = g.recuentos.reduce((s, n) => s + (DB[n]?.articulos?.length||0), 0);
+    const totalPend = g.recuentos.reduce((s, n) => {
+      const arts = DB[n]?.articulos||[];
+      return s + arts.filter(a => !a._contado && a.fisico === 0).length;
+    }, 0);
+    const pct = totalRefs > 0 ? Math.round(((totalRefs - totalPend) / totalRefs) * 100) : 0;
+    const barColor = pct === 100 ? "#10b981" : pct > 50 ? "#3b82f6" : "#f59e0b";
+    const uid = String(g.user.id).replace(/'/g,"\'");
+
+    grid.insertAdjacentHTML("beforeend", `
+      <div class="hg-op-card" onclick="_historialFiltroUserId='${uid}';renderHistory();">
+        <div class="hg-op-left">
+          <div class="hg-op-avatar" style="background:${color}18;color:${color};border:2px solid ${color}40;">
+            ${(g.user.nombre||"?").charAt(0).toUpperCase()}
+          </div>
+          <div class="hg-op-info">
+            <div class="hg-op-name">${esc(g.user.nombre||g.user.email)}</div>
+            <div class="hg-op-email">${esc(g.user.email)}</div>
           </div>
         </div>
-        <div class="hg-cards">${recuentos.map(cardHTML).join("")}</div>
-      </div>`;
-  }
-
-  // Panels por operador
-  const colors = ["#3b82f6","#10b981","#f59e0b","#8b5cf6","#ef4444","#06b6d4"];
-  Object.values(grupos).forEach((g, i) => {
-    grid.insertAdjacentHTML("beforeend", panelHTML(
-      g.user.nombre || g.user.email,
-      g.user.email,
-      (g.user.nombre||"?").charAt(0).toUpperCase(),
-      colors[i % colors.length],
-      g.recuentos
-    ));
+        <div class="hg-op-right">
+          <div class="hg-op-count" style="color:${color};">${g.recuentos.length}</div>
+          <div class="hg-op-count-label">recuento${g.recuentos.length!==1?"s":""}</div>
+        </div>
+        <div class="hg-op-progress-wrap">
+          <div class="hg-op-progress-bar">
+            <div class="hg-op-progress-fill" style="width:${pct}%;background:${barColor};"></div>
+          </div>
+          <span class="hg-op-pct">${pct}% completado</span>
+        </div>
+        <div class="hg-op-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    `);
   });
 
-  // Panel sin asignar (solo admin)
-  if (sinAsignar.length > 0 && role === "admin") {
-    grid.insertAdjacentHTML("beforeend", panelHTML(
-      "Sin asignar", "Recuentos sin operador asignado", "?", "#94a3b8", sinAsignar
-    ));
+  if (sinAsignar.length > 0) {
+    grid.insertAdjacentHTML("beforeend", `
+      <div class="hg-op-card hg-op-card-gray" onclick="_historialFiltroUserId='__sinasignar__';renderHistory();">
+        <div class="hg-op-left">
+          <div class="hg-op-avatar" style="background:#94a3b820;color:#94a3b8;border:2px solid #94a3b840;">?</div>
+          <div class="hg-op-info">
+            <div class="hg-op-name">Sin asignar</div>
+            <div class="hg-op-email">Recuentos sin operador asignado</div>
+          </div>
+        </div>
+        <div class="hg-op-right">
+          <div class="hg-op-count" style="color:#94a3b8;">${sinAsignar.length}</div>
+          <div class="hg-op-count-label">recuento${sinAsignar.length!==1?"s":""}</div>
+        </div>
+        <div class="hg-op-progress-wrap">
+          <div class="hg-op-progress-bar"><div class="hg-op-progress-fill" style="width:0%;"></div></div>
+          <span class="hg-op-pct">Sin asignar</span>
+        </div>
+        <div class="hg-op-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>
+    `);
   }
 }
 
+function cardHTML(name) {
+  const inv = DB[name];
+  const arts = inv.articulos;
+  const total      = arts.length;
+  const exactos    = arts.filter(a => Math.abs(a.fisico - a.sap) <= 0.001 && (a.fisico > 0 || a._contado)).length;
+  const conDif     = arts.filter(a => Math.abs(a.fisico - a.sap) > 0.001).length;
+  const pendientes = arts.filter(a => !a._contado && a.fisico === 0).length;
+  const pct        = total > 0 ? Math.round(((total - pendientes) / total) * 100) : 0;
+  const totalDif   = arts.reduce((s,a) => s + (a.fisico - a.sap), 0);
+  const difClass   = totalDif < -0.001 ? "neg" : totalDif > 0.001 ? "pos" : "zero";
+  const difSign    = totalDif > 0.001 ? "+" : "";
+  const isActive   = name === activeInv;
+  const ne = name.replace(/'/g,"\'");
+  const barColor   = pct === 100 ? "#10b981" : pct > 50 ? "#3b82f6" : "#f59e0b";
+  const delBtn     = role === "admin"
+    ? `<button class="btn btn-danger btn-sm" style="padding:2px 7px;font-size:10px;" onclick="event.stopPropagation();deleteInventory('${ne}')">
+         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+       </button>` : "";
+  return `
+    <div class="hc2-card${isActive ? " hc2-active" : ""}" onclick="switchToInv('${ne}')">
+      <div class="hc2-top">
+        <div class="hc2-name">${esc(name)}${isActive ? '<span class="hc2-dot"> ●</span>' : ""}</div>
+        ${delBtn}
+      </div>
+      <div class="hc2-meta">
+        <span>📅 ${inv.fecha||"—"}</span>
+        <span>🏭 ${inv.almacen||"—"}</span>
+      </div>
+      <div class="hc2-progress-wrap">
+        <div class="hc2-progress-bar"><div class="hc2-progress-fill" style="width:${pct}%;background:${barColor};"></div></div>
+        <span class="hc2-pct">${pct}%</span>
+      </div>
+      <div class="hc2-pills">
+        <span class="hc2-pill hc2-pill-total">${total} refs</span>
+        <span class="hc2-pill hc2-pill-ok">✓ ${exactos}</span>
+        <span class="hc2-pill hc2-pill-diff">⚠ ${conDif}</span>
+        <span class="hc2-pill hc2-pill-pend">⏳ ${pendientes}</span>
+        <span class="hc2-pill hc2-pill-dif ${difClass}" style="margin-left:auto;">${difSign}${fmt(totalDif)}</span>
+      </div>
+    </div>`;
+}
 function switchToInv(name) {
   activeInv = name;
   document.getElementById("selInv").value = name;
