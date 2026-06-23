@@ -2114,6 +2114,64 @@ td:focus { outline: none !important; box-shadow: none !important; }
   vertical-align: middle;
 }
 
+
+/* ══ AGENTES DE INVENTARIO ══ */
+.ag-card {
+  background: var(--surface);
+  border: 1.5px solid var(--border2);
+  border-radius: 14px;
+  padding: 16px 20px;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 10px 0;
+  align-items: center;
+  transition: all .18s;
+  box-shadow: 0 2px 8px rgba(20,60,120,.05);
+  position: relative;
+}
+.ag-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 6px 20px rgba(20,60,120,.12);
+  transform: translateY(-2px);
+}
+.ag-card-active {
+  border-color: #3b82f6 !important;
+  background: #f0f7ff !important;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12) !important;
+}
+.ag-card-todos { border-style: dashed; }
+
+.ag-left { display: flex; align-items: center; gap: 14px; }
+.ag-avatar {
+  width: 52px; height: 52px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; font-weight: 800; font-family: var(--mono); flex-shrink: 0;
+}
+.ag-name { font-size: 15px; font-weight: 700; color: var(--text); letter-spacing: -.2px; }
+.ag-email { font-size: 11px; color: var(--text3); font-family: var(--mono); margin-top: 2px; }
+
+.ag-stats { display: flex; gap: 24px; padding-right: 40px; }
+.ag-stat { text-align: right; }
+.ag-stat-val { font-size: 26px; font-weight: 800; font-family: var(--mono); line-height: 1; }
+.ag-stat-lbl { font-size: 10px; color: var(--text3); font-family: var(--mono); text-transform: uppercase; letter-spacing: .5px; }
+
+.ag-progress-wrap { grid-column: 1 / -1; }
+.ag-progress-bar { width: 100%; height: 6px; background: var(--border2); border-radius: 999px; overflow: hidden; }
+.ag-progress-fill { height: 100%; border-radius: 999px; transition: width .5s ease; }
+
+.ag-active-badge {
+  position: absolute; bottom: 10px; left: 82px;
+  font-size: 10px; font-weight: 700; color: #3b82f6;
+  font-family: var(--mono);
+}
+.ag-arrow {
+  position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
+  color: var(--text3); transition: all .18s;
+}
+.ag-card:hover .ag-arrow { color: var(--accent); transform: translateY(-50%) translateX(3px); }
+
 </style>
 </head>
 <body>
@@ -2188,6 +2246,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
           <span class="sb-arrow open" id="arrInventario">▶</span>
         </button>
         <div class="sb-children open" id="chlInventario">
+          <button class="sb-item" id="sbAgentes" onclick="goView('agentes')">Agentes de Inventario</button>
           <button class="sb-item active" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
           <button class="sb-item" id="sbArchivados" onclick="goView('archivados')">Contabilizados</button>
           <button class="sb-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
@@ -2299,9 +2358,10 @@ td:focus { outline: none !important; box-shadow: none !important; }
 
       <!-- ══ MATRIZ ══ -->
       <div id="vMatriz">
-        <div class="inv-selector">
+        <div class="inv-selector" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <label>Recuento activo:</label>
           <select id="selInv" onchange="loadInventory()"></select>
+          <span id="agenteActivoBadge" style="display:none;font-size:11px;font-weight:700;background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;padding:3px 10px;border-radius:20px;font-family:var(--mono);cursor:pointer;" onclick="goView('agentes')" title="Cambiar agente"></span>
         </div>
 
         <div class="entry-panel">
@@ -2419,6 +2479,17 @@ td:focus { outline: none !important; box-shadow: none !important; }
       </div>
 
       <!-- ══ HISTORIAL ══ -->
+      <!-- ══ AGENTES DE INVENTARIO ══ -->
+      <div id="vAgentes" class="hidden">
+        <div class="view-header">
+          <div class="view-header-left">
+            <h2>Agentes de Inventario</h2>
+            <p>Selecciona un agente para ver sus recuentos</p>
+          </div>
+        </div>
+        <div id="agentesGrid" style="display:flex;flex-direction:column;gap:12px;"></div>
+      </div>
+
       <div id="vHistorial" class="hidden">
 
         <!-- Saludo dinámico -->
@@ -2919,7 +2990,8 @@ async function sha256(str) {
 //  ESTADO
 // ══════════════════════════════════
 let DB, USERS, SCHEDULE, CAL_TEXTS, ARCHIVED; // ARCHIVED: { nombre: { ...inv, archivedAt, operador } }
-let _historialFiltroUserId = null; // null = vista de operadores, string = vista de recuentos del operador
+let _historialFiltroUserId = null;
+let _agenteActivoId = null; // null = todos, string = agente seleccionado // null = vista de operadores, string = vista de recuentos del operador
 let role = "", currentUser = null;
 let activeInv = "", selectedRow = null, editingUserId = null;
 let sidebarOpen = false;
@@ -3504,9 +3576,9 @@ function toggleGroup(name) {
 // ══════════════════════════════════
 //  NAVEGACIÓN
 // ══════════════════════════════════
-const VIEWS  = { matriz:"vMatriz", historial:"vHistorial", archivados:"vArchivados", analisis:"vAnalisis", cronograma:"vCronograma", usuarios:"vUsuarios" };
+const VIEWS  = { agentes:"vAgentes", matriz:"vMatriz", historial:"vHistorial", archivados:"vArchivados", analisis:"vAnalisis", cronograma:"vCronograma", usuarios:"vUsuarios" };
 const TITLES = { matriz:"Vista Previa", historial:"Lista de Recuentos", analisis:"Análisis de Recuento", cronograma:"Cronograma", usuarios:"Gestión de Usuarios" };
-const SB_IDS = { matriz:"sbMatriz", historial:"sbHistorial", archivados:"sbArchivados", analisis:"sbAnalisis", cronograma:"sbCronograma", usuarios:"sbUsuarios" };
+const SB_IDS = { agentes:"sbAgentes", matriz:"sbMatriz", historial:"sbHistorial", archivados:"sbArchivados", analisis:"sbAnalisis", cronograma:"sbCronograma", usuarios:"sbUsuarios" };
 
 function goView(v) {
   if (role === "operador" && v === "usuarios") return;
@@ -3516,7 +3588,8 @@ function goView(v) {
     if (el) el.classList.toggle("active", k === v);
   });
   document.getElementById("topTitle").textContent = TITLES[v];
-  if (v === "historial")  { if (role === "admin") _historialFiltroUserId = null; renderHistory(); }
+  if (v === "agentes")    renderAgentes();
+  if (v === "historial")  { if (role === "admin" && _agenteActivoId === null) _historialFiltroUserId = null; renderHistory(); }
   if (v === "archivados") renderArchivados();
   if (v === "analisis")   { buildAnalisisSelector(); renderAnalisis(); }
   if (v === "cronograma") {
@@ -3540,11 +3613,34 @@ function buildInvSelector() {
   sel.innerHTML = "";
   let keys = Object.keys(DB);
   if (role === "operador") keys = keys.filter(k => currentUser.ops.includes(k));
+  // Filtrar por agente activo si hay uno seleccionado
+  if (_agenteActivoId && role === "admin") {
+    if (_agenteActivoId === "__sinasignar__") {
+      keys = keys.filter(name => !(USERS||[]).some(u => u.rol==="operador" && u.ops && u.ops.includes(name)));
+    } else {
+      const ag = (USERS||[]).find(u => String(u.id) === String(_agenteActivoId));
+      if (ag && ag.ops) keys = keys.filter(k => ag.ops.includes(k));
+    }
+  }
   keys.forEach(k => {
     const o = document.createElement("option");
     o.value = k; o.textContent = k; sel.appendChild(o);
   });
   if (keys.length) sel.value = keys.includes(activeInv) ? activeInv : keys[0];
+
+  // Mostrar/ocultar badge de agente activo
+  const badge = document.getElementById("agenteActivoBadge");
+  if (badge) {
+    if (_agenteActivoId && _agenteActivoId !== "__sinasignar__" && role === "admin") {
+      const ag = (USERS||[]).find(u => String(u.id) === String(_agenteActivoId));
+      if (ag) { badge.textContent = "👤 " + (ag.nombre||ag.email); badge.style.display = ""; }
+      else { badge.style.display = "none"; }
+    } else if (_agenteActivoId === "__sinasignar__") {
+      badge.textContent = "👤 Sin asignar"; badge.style.display = "";
+    } else {
+      badge.style.display = "none";
+    }
+  }
 }
 
 function loadInventory() {
@@ -5694,6 +5790,101 @@ function verDetalleArchivado(name) {
   </div>`;
   overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
   document.body.appendChild(overlay);
+}
+
+
+// ══════════════════════════════════
+//  AGENTES DE INVENTARIO
+// ══════════════════════════════════
+function renderAgentes() {
+  const grid = document.getElementById("agentesGrid");
+  grid.innerHTML = "";
+  const operadores = (USERS||[]).filter(u => u.rol === "operador");
+  const allKeys = Object.keys(DB);
+  const colors = ["#3b82f6","#10b981","#f59e0b","#8b5cf6","#ef4444","#06b6d4"];
+
+  function agenteCard(u, color) {
+    const ops = (u.ops||[]).filter(k => DB[k]);
+    const totalRefs = ops.reduce((s,n) => s + (DB[n]?.articulos?.length||0), 0);
+    const totalPend = ops.reduce((s,n) => {
+      return s + (DB[n]?.articulos||[]).filter(a => !a._contado && a.fisico === 0).length;
+    }, 0);
+    const pct = totalRefs > 0 ? Math.round(((totalRefs - totalPend) / totalRefs) * 100) : 0;
+    const barColor = pct === 100 ? "#10b981" : pct > 50 ? "#3b82f6" : "#f59e0b";
+    const uid = String(u.id).replace(/'/g,"\'");
+    const isActive = String(_agenteActivoId) === String(u.id);
+    return `
+      <div class="ag-card${isActive ? " ag-card-active" : ""}" onclick="seleccionarAgente('${uid}')">
+        <div class="ag-left">
+          <div class="ag-avatar" style="background:${color}18;color:${color};border:2px solid ${color}40;">${(u.nombre||"?").charAt(0).toUpperCase()}</div>
+          <div class="ag-info">
+            <div class="ag-name">${esc(u.nombre||u.email)}</div>
+            <div class="ag-email">${esc(u.email)}</div>
+          </div>
+        </div>
+        <div class="ag-stats">
+          <div class="ag-stat">
+            <div class="ag-stat-val" style="color:${color};">${ops.length}</div>
+            <div class="ag-stat-lbl">recuento${ops.length!==1?"s":""}</div>
+          </div>
+          <div class="ag-stat">
+            <div class="ag-stat-val">${pct}%</div>
+            <div class="ag-stat-lbl">completado</div>
+          </div>
+        </div>
+        <div class="ag-progress-wrap">
+          <div class="ag-progress-bar"><div class="ag-progress-fill" style="width:${pct}%;background:${barColor};"></div></div>
+        </div>
+        ${isActive ? '<div class="ag-active-badge">● Agente activo</div>' : ''}
+        <div class="ag-arrow">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+        </div>
+      </div>`;
+  }
+
+  // Card "Todos" para limpiar filtro
+  const todosActivo = _agenteActivoId === null;
+  grid.insertAdjacentHTML("beforeend", `
+    <div class="ag-card ag-card-todos${todosActivo ? " ag-card-active" : ""}" onclick="seleccionarAgente(null)">
+      <div class="ag-left">
+        <div class="ag-avatar" style="background:#64748b18;color:#64748b;border:2px solid #64748b40;">★</div>
+        <div class="ag-info">
+          <div class="ag-name">Todos los agentes</div>
+          <div class="ag-email">Ver todos los recuentos sin filtro</div>
+        </div>
+      </div>
+      <div class="ag-stats">
+        <div class="ag-stat">
+          <div class="ag-stat-val" style="color:#64748b;">${allKeys.length}</div>
+          <div class="ag-stat-lbl">recuentos</div>
+        </div>
+      </div>
+      <div class="ag-progress-wrap"><div class="ag-progress-bar"></div></div>
+      ${todosActivo ? '<div class="ag-active-badge">● Activo</div>' : ''}
+      <div class="ag-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+    </div>
+  `);
+
+  operadores.forEach((u, i) => {
+    grid.insertAdjacentHTML("beforeend", agenteCard(u, colors[i % colors.length]));
+  });
+
+  if (operadores.length === 0) {
+    grid.insertAdjacentHTML("beforeend", `<div style="text-align:center;padding:40px;color:var(--text3);font-family:var(--mono);font-size:12px;">NO HAY OPERADORES REGISTRADOS</div>`);
+  }
+}
+
+function seleccionarAgente(uid) {
+  _agenteActivoId = uid;
+  // Filtrar historial y selector
+  if (uid !== null) {
+    _historialFiltroUserId = uid;
+  } else {
+    _historialFiltroUserId = null;
+  }
+  buildInvSelector();
+  // Ir directo a lista de recuentos del agente
+  goView("historial");
 }
 
 </script>
