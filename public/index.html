@@ -51,11 +51,9 @@ body {
   color: var(--text);
   min-height: 100vh;
   display: flex;
-  align-items: stretch;
-  justify-content: stretch;
-  padding: 0;
-  margin: 0;
-  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
 }
 
 .hidden { display: none !important; }
@@ -300,14 +298,16 @@ select, input, textarea, button { font-family: var(--sans); }
 ══════════════════════════════ */
 .shell {
   display: flex;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  max-width: 1440px;
+  min-height: 88vh;
   background: var(--surface);
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
   position: relative;
+  animation: fadeUp .3s ease;
 }
 /* Topbar fija dentro del main */
 .main {
@@ -2075,6 +2075,44 @@ td:focus { outline: none !important; box-shadow: none !important; }
 /* historyGrid layout */
 #historyGrid { display: flex; flex-direction: column; gap: 12px; }
 
+
+/* ══ BOTÓN ARCHIVAR ══ */
+.btn-archive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 5px;
+  color: #16a34a;
+  cursor: pointer;
+  font-size: 10px;
+  transition: all .15s;
+}
+.btn-archive:hover { background: #dcfce7; border-color: #4ade80; }
+
+/* ══ CARD ARCHIVADA ══ */
+.hc2-archived {
+  border-color: #bbf7d0 !important;
+  background: #f0fdf4 !important;
+  cursor: pointer;
+}
+.hc2-archived:hover {
+  border-color: #10b981 !important;
+  box-shadow: 0 4px 14px rgba(16,185,129,.15) !important;
+}
+.hc2-arch-badge {
+  font-size: 9px;
+  font-weight: 700;
+  background: #10b981;
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 20px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
 </style>
 </head>
 <body>
@@ -2150,6 +2188,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
         </button>
         <div class="sb-children open" id="chlInventario">
           <button class="sb-item active" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
+          <button class="sb-item" id="sbArchivados" onclick="goView('archivados')">Archivados</button>
           <button class="sb-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
           <button class="sb-item" id="sbAnalisis" onclick="goView('analisis')">Análisis de Recuento</button>
         </div>
@@ -2402,6 +2441,24 @@ td:focus { outline: none !important; box-shadow: none !important; }
         </div>
 
         <div class="history-grid" id="historyGrid"></div>
+      </div>
+
+      <!-- ══ ARCHIVADOS ══ -->
+      <div id="vArchivados" class="hidden">
+        <div class="view-header">
+          <div class="view-header-left">
+            <h2>Recuentos Archivados</h2>
+            <p>Recuentos contabilizados — solo lectura</p>
+          </div>
+        </div>
+        <div id="archivedEmpty" class="history-empty hidden">
+          <div class="history-empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M21 8V21H3V8"/><path d="M23 3H1v5h22V3z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          </div>
+          <div class="history-empty-text">SIN RECUENTOS ARCHIVADOS</div>
+          <div class="history-empty-sub">Los recuentos contabilizados aparecerán aquí</div>
+        </div>
+        <div id="archivedGrid" style="display:flex;flex-direction:column;gap:12px;"></div>
       </div>
 
       <!-- ══ ANÁLISIS ══ -->
@@ -2860,7 +2917,7 @@ async function sha256(str) {
 // ══════════════════════════════════
 //  ESTADO
 // ══════════════════════════════════
-let DB, USERS, SCHEDULE, CAL_TEXTS;
+let DB, USERS, SCHEDULE, CAL_TEXTS, ARCHIVED; // ARCHIVED: { nombre: { ...inv, archivedAt, operador } }
 let _historialFiltroUserId = null; // null = vista de operadores, string = vista de recuentos del operador
 let role = "", currentUser = null;
 let activeInv = "", selectedRow = null, editingUserId = null;
@@ -3186,8 +3243,18 @@ async function refrescarDatos() {
   showToast('✅ Datos actualizados.');
 }
 
+function _persistAll() {
+  try {
+    if (saved.ARCHIVED) ARCHIVED = saved.ARCHIVED;
+    if (!ARCHIVED) ARCHIVED = {};
+    localStorage.setItem('inventarioPro_db', JSON.stringify({ DB, USERS, SCHEDULE, CAL_TEXTS, nextUserId, ARCHIVED }));
+  } catch(e) { showToast('⚠️ Error guardando: ' + e.message); }
+}
+
 async function saveToLocalStorage() {
-  await guardarRecuentoActivo();
+  _persistAll();
+  isDirty = false;
+  updateSaveIndicator();
 }
 
 let _saveTimer = null;
@@ -3195,25 +3262,13 @@ function markDirty() {
   isDirty = true;
   updateSaveIndicator();
   clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => guardarRecuentoActivo(), 2000);
+  _saveTimer = setTimeout(() => saveToLocalStorage(), 2000);
 }
 
 async function guardarRecuentoActivo() {
-  if (!activeInv || !DB[activeInv]) return;
-  try {
-    await apiFetch('/api/recuentos/' + encodeURIComponent(activeInv), {
-      method: 'PUT',
-      body: {
-        articulos: DB[activeInv].articulos,
-        fechaConteo: DB[activeInv].fechaConteo || '',
-        comentarios: DB[activeInv].comentarios || []
-      }
-    });
-    isDirty = false;
-    updateSaveIndicator();
-  } catch(e) {
-    showToast('⚠️ Error guardando: ' + e.message);
-  }
+  _persistAll();
+  isDirty = false;
+  updateSaveIndicator();
 }
 
 function updateSaveIndicator() {
@@ -3448,9 +3503,9 @@ function toggleGroup(name) {
 // ══════════════════════════════════
 //  NAVEGACIÓN
 // ══════════════════════════════════
-const VIEWS  = { matriz:"vMatriz", historial:"vHistorial", analisis:"vAnalisis", cronograma:"vCronograma", usuarios:"vUsuarios" };
+const VIEWS  = { matriz:"vMatriz", historial:"vHistorial", archivados:"vArchivados", analisis:"vAnalisis", cronograma:"vCronograma", usuarios:"vUsuarios" };
 const TITLES = { matriz:"Vista Previa", historial:"Lista de Recuentos", analisis:"Análisis de Recuento", cronograma:"Cronograma", usuarios:"Gestión de Usuarios" };
-const SB_IDS = { matriz:"sbMatriz", historial:"sbHistorial", analisis:"sbAnalisis", cronograma:"sbCronograma", usuarios:"sbUsuarios" };
+const SB_IDS = { matriz:"sbMatriz", historial:"sbHistorial", archivados:"sbArchivados", analisis:"sbAnalisis", cronograma:"sbCronograma", usuarios:"sbUsuarios" };
 
 function goView(v) {
   if (role === "operador" && v === "usuarios") return;
@@ -3461,6 +3516,7 @@ function goView(v) {
   });
   document.getElementById("topTitle").textContent = TITLES[v];
   if (v === "historial")  { if (role === "admin") _historialFiltroUserId = null; renderHistory(); }
+  if (v === "archivados") renderArchivados();
   if (v === "analisis")   { buildAnalisisSelector(); renderAnalisis(); }
   if (v === "cronograma") {
     if (role === "admin") {
@@ -4132,6 +4188,10 @@ function cardHTML(name) {
   const isActive   = name === activeInv;
   const ne = name.replace(/'/g,"\'");
   const barColor   = pct === 100 ? "#10b981" : pct > 50 ? "#3b82f6" : "#f59e0b";
+  const archBtn    = role === "admin"
+    ? `<button class="btn-archive" title="Contabilizar y archivar" onclick="event.stopPropagation();archivarRecuento('${ne}')">
+         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 8V21H3V8"/><path d="M23 3H1v5h22V3z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+       </button>` : "";
   const delBtn     = role === "admin"
     ? `<button class="btn btn-danger btn-sm" style="padding:2px 7px;font-size:10px;" onclick="event.stopPropagation();deleteInventory('${ne}')">
          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
@@ -4140,7 +4200,7 @@ function cardHTML(name) {
     <div class="hc2-card${isActive ? " hc2-active" : ""}" onclick="switchToInv('${ne}')">
       <div class="hc2-top">
         <div class="hc2-name">${esc(name)}${isActive ? '<span class="hc2-dot"> ●</span>' : ""}</div>
-        ${delBtn}
+        <div style="display:flex;gap:4px;">${archBtn}${delBtn}</div>
       </div>
       <div class="hc2-meta">
         <span>📅 ${inv.fecha||"—"}</span>
@@ -5456,6 +5516,183 @@ function exportActiveRecuento() {
   showToast('✅ Recuento "' + activeInv + '" exportado.');
 }
 </script>
+
+
+// ══════════════════════════════════
+//  ARCHIVAR RECUENTOS
+// ══════════════════════════════════
+async function archivarRecuento(name) {
+  if (role !== "admin") { showToast("⛔ Solo el administrador puede archivar recuentos."); return; }
+  if (!await appConfirm(
+    `El recuento "${name}" se marcará como contabilizado y pasará a solo lectura. No podrás editarlo después.`,
+    { titulo: '¿Contabilizar recuento?', icono: '📦', okLabel: 'Contabilizar', okDanger: false }
+  )) return;
+
+  if (!ARCHIVED) ARCHIVED = {};
+  const operadores = (USERS||[]).filter(u => u.rol === "operador" && u.ops && u.ops.includes(name));
+  ARCHIVED[name] = {
+    ...DB[name],
+    archivedAt: new Date().toISOString(),
+    operadores: operadores.map(u => u.nombre || u.email)
+  };
+  delete DB[name];
+  saveToLocalStorage();
+  if (activeInv === name) { activeInv = Object.keys(DB)[0] || ""; buildInvSelector(); if (activeInv) loadInventory(); }
+  buildInvSelector();
+  renderHistory();
+  showToast("📦 Recuento contabilizado y archivado.");
+}
+
+function renderArchivados() {
+  const grid  = document.getElementById("archivedGrid");
+  const empty = document.getElementById("archivedEmpty");
+  grid.innerHTML = "";
+  if (!ARCHIVED) ARCHIVED = {};
+  const keys = Object.keys(ARCHIVED);
+  if (keys.length === 0) { empty.classList.remove("hidden"); return; }
+  empty.classList.add("hidden");
+
+  // Agrupar por operador igual que en historial
+  const grupos = {};
+  const sinAsignar = [];
+  keys.forEach(name => {
+    const ops = ARCHIVED[name].operadores || [];
+    if (ops.length === 0) {
+      sinAsignar.push(name);
+    } else {
+      ops.forEach(opNombre => {
+        if (!grupos[opNombre]) grupos[opNombre] = [];
+        grupos[opNombre].push(name);
+      });
+    }
+  });
+
+  function archivedCardHTML(name) {
+    const inv = ARCHIVED[name];
+    const arts = inv.articulos || [];
+    const total    = arts.length;
+    const exactos  = arts.filter(a => Math.abs(a.fisico - a.sap) <= 0.001 && (a.fisico > 0 || a._contado)).length;
+    const conDif   = arts.filter(a => Math.abs(a.fisico - a.sap) > 0.001).length;
+    const totalDif = arts.reduce((s,a) => s + (a.fisico - a.sap), 0);
+    const difClass = totalDif < -0.001 ? "neg" : totalDif > 0.001 ? "pos" : "zero";
+    const difSign  = totalDif > 0.001 ? "+" : "";
+    const archDate = inv.archivedAt ? inv.archivedAt.slice(0,10) : "—";
+    const ne = name.replace(/'/g,"\'");
+    const delBtn = role === "admin"
+      ? `<button class="btn btn-danger btn-sm" style="padding:2px 7px;font-size:10px;" title="Eliminar archivo" onclick="event.stopPropagation();eliminarArchivado('${ne}')">
+           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
+         </button>` : "";
+    return `
+      <div class="hc2-card hc2-archived" onclick="verDetalleArchivado('${ne}')">
+        <div class="hc2-top">
+          <div class="hc2-name">${esc(name)} <span class="hc2-arch-badge">✓ Contabilizado</span></div>
+          ${delBtn}
+        </div>
+        <div class="hc2-meta">
+          <span>📅 ${inv.fecha||"—"}</span>
+          <span>🏭 ${inv.almacen||"—"}</span>
+          <span>📦 Archivado: ${archDate}</span>
+        </div>
+        <div class="hc2-progress-wrap">
+          <div class="hc2-progress-bar"><div class="hc2-progress-fill" style="width:100%;background:#10b981;"></div></div>
+          <span class="hc2-pct">100%</span>
+        </div>
+        <div class="hc2-pills">
+          <span class="hc2-pill hc2-pill-total">${total} refs</span>
+          <span class="hc2-pill hc2-pill-ok">✓ ${exactos}</span>
+          <span class="hc2-pill hc2-pill-diff">⚠ ${conDif}</span>
+          <span class="hc2-pill hc2-pill-dif ${difClass}" style="margin-left:auto;">${difSign}${fmt(totalDif)}</span>
+        </div>
+      </div>`;
+  }
+
+  function archivedPanelHTML(titulo, recuentos, color) {
+    return `
+      <div class="hg-panel">
+        <div class="hg-header" style="border-left:3px solid ${color};">
+          <div class="hg-avatar" style="background:${color}18;color:${color};">${titulo.charAt(0).toUpperCase()}</div>
+          <div class="hg-header-info">
+            <div class="hg-title">${esc(titulo)}</div>
+            <div class="hg-sub">${recuentos.length} recuento${recuentos.length!==1?"s":""} archivado${recuentos.length!==1?"s":""}</div>
+          </div>
+          <span style="margin-left:auto;font-size:10px;font-family:var(--mono);color:#10b981;font-weight:700;">✓ CONTABILIZADO</span>
+        </div>
+        <div class="hg-cards">${recuentos.map(archivedCardHTML).join("")}</div>
+      </div>`;
+  }
+
+  const colors = ["#10b981","#3b82f6","#8b5cf6","#f59e0b","#06b6d4"];
+  Object.entries(grupos).forEach(([nombre, recuentos], i) => {
+    grid.insertAdjacentHTML("beforeend", archivedPanelHTML(nombre, recuentos, colors[i % colors.length]));
+  });
+  if (sinAsignar.length > 0) {
+    grid.insertAdjacentHTML("beforeend", archivedPanelHTML("Sin asignar", sinAsignar, "#94a3b8"));
+  }
+}
+
+async function eliminarArchivado(name) {
+  if (!await appConfirm(`¿Eliminar permanentemente el archivo "${name}"?`, { titulo: 'Eliminar archivo', icono: '🗑️', okLabel: 'Eliminar', okDanger: true })) return;
+  delete ARCHIVED[name];
+  saveToLocalStorage();
+  renderArchivados();
+  showToast("🗑 Archivo eliminado.");
+}
+
+function verDetalleArchivado(name) {
+  const inv = ARCHIVED[name];
+  if (!inv) return;
+  const arts = inv.articulos || [];
+  const totalDif = arts.reduce((s,a) => s + (a.fisico - a.sap), 0);
+  const archDate = inv.archivedAt ? inv.archivedAt.slice(0,10) : "—";
+  const rows = arts.map(a => {
+    const dif = a.fisico - a.sap;
+    const cls = dif < -0.001 ? "color:#ef4444" : dif > 0.001 ? "color:#10b981" : "color:#94a3b8";
+    return `<tr>
+      <td style="font-family:var(--mono);font-size:11px;">${esc(a.codigo)}</td>
+      <td style="font-size:11px;">${esc(a.descripcion)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-size:11px;">${a.almacen||""}</td>
+      <td style="text-align:right;font-family:var(--mono);font-size:11px;">${fmt(a.fisico)}</td>
+      <td style="text-align:right;font-family:var(--mono);font-size:11px;">${fmt(a.sap)}</td>
+      <td style="text-align:right;font-family:var(--mono);font-size:11px;font-weight:700;${cls}">${dif > 0?"+":""}${fmt(dif)}</td>
+    </tr>`;
+  }).join("");
+  const html = `
+    <div style="margin-bottom:12px;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--text2);font-family:var(--mono);">
+      <span>📅 Fecha recuento: <b>${inv.fecha||"—"}</b></span>
+      <span>🏭 Almacén: <b>${inv.almacen||"—"}</b></span>
+      <span>📦 Archivado: <b>${archDate}</b></span>
+      <span>👤 Operadores: <b>${(inv.operadores||[]).join(", ")||"—"}</b></span>
+    </div>
+    <div style="max-height:55vh;overflow-y:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;">
+        <thead><tr style="background:var(--surface2);">
+          <th style="padding:6px 8px;text-align:left;font-family:var(--mono);font-size:10px;border-bottom:1px solid var(--border2);">CÓDIGO</th>
+          <th style="padding:6px 8px;text-align:left;font-size:10px;border-bottom:1px solid var(--border2);">DESCRIPCIÓN</th>
+          <th style="padding:6px 8px;text-align:center;font-size:10px;border-bottom:1px solid var(--border2);">ALM</th>
+          <th style="padding:6px 8px;text-align:right;font-size:10px;border-bottom:1px solid var(--border2);">FÍSICO</th>
+          <th style="padding:6px 8px;text-align:right;font-size:10px;border-bottom:1px solid var(--border2);">SAP</th>
+          <th style="padding:6px 8px;text-align:right;font-size:10px;border-bottom:1px solid var(--border2);">DIF</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr style="background:var(--surface2);font-weight:700;">
+          <td colspan="5" style="padding:6px 8px;text-align:right;font-size:11px;font-family:var(--mono);">TOTAL DIFERENCIA</td>
+          <td style="padding:6px 8px;text-align:right;font-size:12px;font-family:var(--mono);color:${totalDif<0?"#ef4444":totalDif>0?"#10b981":"#94a3b8"};">${totalDif>0?"+":""}${fmt(totalDif)}</td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  // Mostrar en un modal temporal
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(15,35,70,.45);z-index:2000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+  overlay.innerHTML = `<div style="background:#fff;border-radius:16px;padding:0;width:min(860px,96vw);max-height:90vh;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.2);display:flex;flex-direction:column;">
+    <div style="padding:14px 20px;background:linear-gradient(135deg,#e8f5e9,#c8e6c9);border-bottom:1px solid #a5d6a7;display:flex;align-items:center;justify-content:space-between;">
+      <div style="font-size:14px;font-weight:700;color:#1b5e20;">📦 ${esc(name)} <span style="font-size:10px;font-weight:600;background:#10b981;color:#fff;padding:2px 8px;border-radius:20px;margin-left:8px;">✓ CONTABILIZADO</span></div>
+      <button onclick="this.closest('[style*=fixed]').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:#64748b;line-height:1;">✕</button>
+    </div>
+    <div style="padding:16px;overflow-y:auto;">${html}</div>
+  </div>`;
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
 
 </body>
 </html>
