@@ -3444,7 +3444,17 @@ async function doLogin() {
 
   loadFromStorage();
   const hashInput = await sha256(pw);
-  const user = USERS.find(u => u.email.toLowerCase() === em && (u.passwordHash === hashInput || u.hash === hashInput));
+  // Buscar usuario: con hash guardado, o sin hash (usuarios del servidor sin contraseña local)
+  let user = USERS.find(u => u.email.toLowerCase() === em && (u.passwordHash === hashInput || u.hash === hashInput));
+  // Si el usuario existe pero no tiene hash (viene del servidor), guardarle el hash ahora
+  if (!user) {
+    const userSinHash = USERS.find(u => u.email.toLowerCase() === em && !u.hash && !u.passwordHash);
+    if (userSinHash) {
+      userSinHash.hash = hashInput;
+      _persistAll();
+      user = userSinHash;
+    }
+  }
   if (!user) { showToast("❌ Credenciales incorrectas."); return; }
   currentUser = { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
   role = user.rol;
