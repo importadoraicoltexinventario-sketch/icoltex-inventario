@@ -3042,25 +3042,7 @@ let _notifList = [];
 
 function apiUrl(path) { return path; }
 
-async function apiFetch(path, opts={}) {
-  try {
-    const fetchOpts = {
-      method: opts.method || 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin'
-    };
-    if (opts.body) fetchOpts.body = JSON.stringify(opts.body);
-    const r = await fetch(path, fetchOpts);
-    if (!r.ok) {
-      const e = await r.json().catch(()=>({error:r.statusText}));
-      throw new Error(e.error || r.statusText);
-    }
-    return r.json();
-  } catch(e) {
-    console.error('API error:', path, e.message);
-    throw e;
-  }
-}
+async function apiFetch(path, opts={}) { return {}; } // stub — app funciona offline
 
 function conectarWS() {
   if (!currentUser) return;
@@ -3115,20 +3097,14 @@ function mostrarNotifPush(mensaje) {
   } catch(e) {}
 }
 
-// Actualizar recuento en vivo cuando otro usuario guarda cambios
-async function actualizarRecuentoEnVivo(nombre) {
+// Actualizar recuento en vivo (BroadcastChannel)
+function actualizarRecuentoEnVivo(nombre, articulos, fechaConteo, comentarios) {
   if (!nombre || !DB[nombre]) return;
-  try {
-    const recuentos = await apiFetch('/api/recuentos');
-    const r = recuentos.find(x => x.nombre === nombre);
-    if (!r) return;
-    DB[nombre] = { ...DB[nombre], articulos: r.articulos || [], fechaConteo: r.fechaConteo, comentarios: r.comentarios || [] };
-    if (nombre === activeInv) {
-      renderMatrix();
-      showToast('🔄 Datos actualizados en tiempo real.');
-    }
-    renderHistory();
-  } catch(e) {}
+  if (articulos) DB[nombre].articulos = articulos;
+  if (fechaConteo) DB[nombre].fechaConteo = fechaConteo;
+  if (comentarios) DB[nombre].comentarios = comentarios;
+  if (nombre === activeInv) { renderMatrix(); showToast('🔄 Datos actualizados en tiempo real.'); }
+  renderHistory();
 }
 
 function toggleNotifPanel() {
@@ -3269,40 +3245,28 @@ function resetStorage() {
   showToast('⚠️ Función deshabilitada en modo servidor.');
 }
 
-async function loadFromStorage() {
+function loadFromStorage() {
   try {
-    // Cargar recuentos
-    const recuentos = await apiFetch('/api/recuentos');
-    DB = {};
-    recuentos.forEach(r => {
-      DB[r.nombre] = {
-        fecha: r.fecha,
-        almacen: r.almacen,
-        fechaConteo: r.fechaConteo || '',
-        articulos: r.articulos || [],
-        comentarios: r.comentarios || []
-      };
-    });
-    // Cargar usuarios (siempre, para poder asignar operadores)
-    try {
-      const usuarios = await apiFetch('/api/usuarios');
-      USERS = usuarios.map(u => ({
-        id: u.id || u._id,
-        nombre: u.nombre,
-        email: u.email,
-        rol: u.rol,
-        ops: u.ops || []
-      }));
-    } catch(e) { console.warn('No se pudieron cargar usuarios:', e.message); }
-    // Calendario del usuario actual
-    try {
-      const cal = await apiFetch('/api/calendario/' + currentUser.id);
-      CAL_TEXTS = cal || {};
-    } catch(e) { CAL_TEXTS = {}; }
-    SCHEDULE = {};
+    const raw = localStorage.getItem('inventarioPro_db');
+    if (raw) {
+      const saved = JSON.parse(raw);
+      if (saved.DB)         DB         = saved.DB;
+      if (saved.USERS)      USERS      = saved.USERS;
+      if (saved.SCHEDULE)   SCHEDULE   = saved.SCHEDULE;
+      if (saved.CAL_TEXTS)  CAL_TEXTS  = saved.CAL_TEXTS;
+      if (saved.nextUserId) nextUserId  = saved.nextUserId;
+      if (saved.ARCHIVED)   ARCHIVED   = saved.ARCHIVED;
+    }
+    if (!DB)        DB        = {};
+    if (!USERS || !USERS.length) USERS = JSON.parse(JSON.stringify(DEFAULT_USERS_HASHED));
+    if (!SCHEDULE)  SCHEDULE  = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
+    if (!CAL_TEXTS) CAL_TEXTS = {};
+    if (!ARCHIVED)  ARCHIVED  = {};
     return true;
   } catch(e) {
-    console.error('Error cargando datos del servidor:', e);
+    console.error('Error cargando datos locales:', e);
+    DB={}; USERS=JSON.parse(JSON.stringify(DEFAULT_USERS_HASHED));
+    SCHEDULE=JSON.parse(JSON.stringify(DEFAULT_SCHEDULE)); CAL_TEXTS={}; ARCHIVED={};
     return false;
   }
 }
@@ -3478,16 +3442,11 @@ async function doLogin() {
   const pw = document.getElementById("inPass").value;
   if (!em || !pw) { showToast("⚠️ Completa ambos campos."); return; }
 
-  let user;
-  try {
-    const res = await apiFetch('/api/login', { method: 'POST', body: { email: em, password: pw } });
-    user = res.usuario;
-  } catch(e) {
-    showToast("❌ Credenciales incorrectas.");
-    return;
-  }
-
-  currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
+  loadFromStorage();
+  const hashInput = await sha256(pw);
+  const user = USERS.find(u => u.email.toLowerCase() === em && (u.passwordHash === hashInput || u.hash === hashInput));
+  if (!user) { showToast("❌ Credenciales incorrectas."); return; }
+  currentUser = { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
   role = user.rol;
 
   document.getElementById("viewLogin").classList.add("hidden");
@@ -3540,7 +3499,7 @@ async function doLogin() {
 async function doLogout() {
   const msg = isDirty ? 'Tienes cambios sin guardar que se perderán.' : '¿Deseas cerrar tu sesión?';
   if (!await appConfirm(msg, { titulo: '¿Cerrar sesión?', icono: '🚪', okLabel: 'Sí, salir', okDanger: false })) return;
-  await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
+  // logout local
   if (_ws) { _ws.onclose = null; _ws.close(); _ws = null; }
   document.getElementById("viewApp").classList.add("hidden");
   document.getElementById("viewLogin").classList.remove("hidden");
@@ -4333,15 +4292,13 @@ function switchToInv(name) {
 async function deleteInventory(name) {
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar recuentos."); return; }
   if (!await appConfirm(`El recuento "${name}" se eliminará permanentemente.`, { titulo: '¿Eliminar recuento?', icono: '🗑️', okLabel: 'Eliminar', okDanger: true })) return;
-  try {
-    await apiFetch('/api/recuentos/' + encodeURIComponent(name), { method: 'DELETE' });
-    delete DB[name];
-    if (activeInv === name) activeInv = Object.keys(DB)[0] || "";
-    buildInvSelector();
-    if (activeInv) loadInventory();
-    renderHistory();
-    showToast("🗑 Recuento eliminado.");
-  } catch(e) { showToast("⚠️ Error al eliminar: " + e.message); }
+  delete DB[name];
+  guardarRecuentoActivo();
+  if (activeInv === name) { activeInv = Object.keys(DB)[0] || ""; }
+  buildInvSelector();
+  if (activeInv) loadInventory();
+  renderHistory();
+  showToast("🗑 Recuento eliminado.");
 }
 
 // ══════════════════════════════════
@@ -4786,7 +4743,7 @@ async function createInventory() {
   try { arts = JSON.parse(document.getElementById("mInvArticulos").value); } catch(e) { arts = []; }
   const selectedIds = window._opsSeleccionados || [];
   try {
-    await apiFetch('/api/recuentos', { method: 'POST', body: { nombre, fecha, almacen, articulos: arts, operadoresIds: selectedIds } });
+    // guardado local
   } catch(e) { showToast("⚠️ Error creando recuento: " + e.message); return; }
   DB[nombre] = { fecha, almacen, creadoEn: new Date().toISOString().slice(0,10), articulos: arts, comentarios: [] };
   selectedIds.forEach(id => {
@@ -5403,16 +5360,20 @@ async function saveUser() {
   const ops = Array.from(checks).map(c => c.value);
   try {
     if (editingUserId) {
-      await apiFetch('/api/usuarios/' + editingUserId, { method: 'PUT', body: { nombre, email, rol, ops: rol==="admin"?[]:ops, password: pass.length>=4?pass:undefined } });
+      const idx = USERS.findIndex(u => String(u.id) === String(editingUserId));
+      if (idx >= 0) {
+        USERS[idx] = { ...USERS[idx], nombre, email, rol, ops: rol==="admin"?[]:ops };
+        if (pass.length >= 4) USERS[idx].hash = await sha256(pass);
+      }
       showToast("✅ Usuario actualizado.");
     } else {
       if (pass.length < 4) { alert("La contraseña debe tener al menos 4 caracteres."); return; }
-      await apiFetch('/api/usuarios', { method: 'POST', body: { nombre, email, password: pass, rol, ops: rol==="admin"?[]:ops } });
+      if (USERS.find(u => u.email === email)) { alert("Ya existe un usuario con ese correo."); return; }
+      const newId = Math.max(0, ...USERS.map(u => Number(u.id)||0)) + 1;
+      USERS.push({ id: newId, nombre, email, hash: await sha256(pass), rol, ops: rol==="admin"?[]:ops });
       showToast("✅ Usuario creado.");
     }
-    // Recargar lista de usuarios
-    const usuarios = await apiFetch('/api/usuarios');
-    USERS = usuarios.map(u => ({ ...u, id: u.id || u._id }));
+    _persistAll();
   } catch(e) { showToast("⚠️ Error: " + e.message); return; }
   closeUserModal();
   renderUsers();
@@ -5421,14 +5382,10 @@ async function saveUser() {
 async function deleteUser(id) {
   if (String(id) === String(currentUser.id)) { alert("No puedes eliminarte a ti mismo."); return; }
   if (!await appConfirm('Este usuario se eliminará permanentemente.', { titulo: '¿Eliminar usuario?', icono: '🗑️', okLabel: 'Eliminar', okDanger: true })) return;
-  try {
-    await apiFetch('/api/usuarios/' + id, { method: 'DELETE' });
-    // Recargar lista desde servidor
-    const usuarios = await apiFetch('/api/usuarios');
-    USERS = usuarios.map(u => ({ ...u, id: u.id || u._id }));
-    renderUsers();
-    showToast("🗑 Usuario eliminado.");
-  } catch(e) { showToast("⚠️ Error: " + e.message); }
+  USERS = USERS.filter(u => String(u.id) !== String(id));
+  _persistAll();
+  renderUsers();
+  showToast("🗑 Usuario eliminado.");
 }
 
 // ══════════════════════════════════
@@ -5471,66 +5428,7 @@ function showToast(msg) {
 // ══════════════════════════════════
 //  INIT — verificar sesión al cargar
 // ══════════════════════════════════
-document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    const res = await fetch('/api/sesion', { credentials: 'same-origin', headers: { 'Cache-Control': 'no-cache' } });
-    if (!res.ok) return; // sin sesión → queda en login
-    const data = await res.json();
-    const user = data.usuario;
-    if (!user) return;
-
-    currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
-    role = user.rol;
-
-    document.getElementById("viewLogin").classList.add("hidden");
-    document.getElementById("viewApp").classList.remove("hidden");
-    document.body.style.cssText = "display:block;padding:0;margin:0;background:var(--bg);";
-
-    document.getElementById("sbEmail").textContent = user.email;
-    document.getElementById("sbBadge").textContent = role.toUpperCase();
-    document.getElementById("sbBadge").className = "sb-user-badge " + (role === "admin" ? "badge-admin" : "badge-operador");
-
-    if (role === "admin") {
-      document.getElementById("btnNewInv2").classList.remove("hidden");
-      document.getElementById("adminFechaEdit").classList.remove("hidden");
-      document.getElementById("adminMenu").classList.remove("hidden");
-      document.getElementById("calEditHint").classList.remove("hidden");
-      document.getElementById("addRowBar").classList.remove("hidden");
-      document.getElementById("marcarRealizadoBar").classList.add("hidden");
-      document.getElementById("sessionBanner").classList.add("hidden");
-      document.getElementById("fechaConteoEdit").classList.add("hidden");
-    } else {
-      document.getElementById("adminMenu").classList.add("hidden");
-      document.getElementById("btnNewInv2").classList.add("hidden");
-      document.getElementById("adminFechaEdit").classList.add("hidden");
-      document.getElementById("addRowBar").classList.add("hidden");
-      document.getElementById("marcarRealizadoBar").classList.remove("hidden");
-      document.getElementById("sessionBanner").classList.add("hidden");
-      document.getElementById("fechaConteoEdit").classList.remove("hidden");
-    }
-
-    await loadFromStorage();
-    buildInvSelector();
-    if (role === "operador") {
-      const ops = currentUser.ops;
-      activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
-      document.getElementById("selInv").value = activeInv;
-    } else {
-      if (Object.keys(DB).length > 0) {
-        activeInv = Object.keys(DB)[0];
-        document.getElementById("selInv").value = activeInv;
-      }
-    }
-    loadInventory();
-    goView(role === "admin" ? "agentes" : "historial");
-    sidebarOpen = true; toggleSidebar();
-    updateSaveIndicator();
-    conectarWS();
-    solicitarPermisoPush();
-  } catch(e) {
-    console.warn('Sin sesión activa:', e.message);
-  }
-});
+document.addEventListener('DOMContentLoaded', () => { solicitarPermisoPush(); });
 
 
 // ── Entry Modal: mueve el panel real al overlay ──
