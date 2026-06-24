@@ -3318,7 +3318,6 @@ async function refrescarDatos() {
 
 function _persistAll() {
   try {
-    if (saved.ARCHIVED) ARCHIVED = saved.ARCHIVED;
     if (!ARCHIVED) ARCHIVED = {};
     localStorage.setItem('inventarioPro_db', JSON.stringify({ DB, USERS, SCHEDULE, CAL_TEXTS, nextUserId, ARCHIVED }));
   } catch(e) { showToast('⚠️ Error guardando: ' + e.message); }
