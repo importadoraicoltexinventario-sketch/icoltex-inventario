@@ -3531,7 +3531,7 @@ async function doLogin() {
     }
   }
   loadInventory();
-  goView("historial");
+  goView(role === "admin" ? "agentes" : "historial");
   sidebarOpen = true; toggleSidebar();
   updateSaveIndicator();
   conectarWS();
@@ -4167,9 +4167,9 @@ function renderHistory() {
 
     grid.insertAdjacentHTML("beforeend", `
       <div class="hg-breadcrumb">
-        <button class="hg-back-btn" onclick="_historialFiltroUserId=null;renderHistory();">
+        <button class="hg-back-btn" onclick="goView('agentes');">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-          Todos los operadores
+          Agentes de Inventario
         </button>
         <span class="hg-breadcrumb-sep">›</span>
         <span class="hg-breadcrumb-cur">${titulo}</span>
@@ -4188,7 +4188,14 @@ function renderHistory() {
     return;
   }
 
-  // ── NIVEL 1: cards por operador ──
+  // ── NIVEL 1: si hay agente activo, ir directo a nivel 2 ──
+  if (_agenteActivoId !== null && role === "admin") {
+    _historialFiltroUserId = _agenteActivoId;
+    renderHistory();
+    return;
+  }
+
+  // ── NIVEL 1: cards por operador (sin agente seleccionado) ──
   const grupos = {};
   const sinAsignar = [];
 
@@ -5516,7 +5523,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     }
     loadInventory();
-    goView("historial");
+    goView(role === "admin" ? "agentes" : "historial");
     sidebarOpen = true; toggleSidebar();
     updateSaveIndicator();
     conectarWS();
