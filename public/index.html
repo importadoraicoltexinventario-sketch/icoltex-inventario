@@ -2246,7 +2246,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
           <span class="sb-arrow open" id="arrInventario">▶</span>
         </button>
         <div class="sb-children open" id="chlInventario">
-          <button class="sb-item" id="sbAgentes" onclick="goView('agentes')">Agentes de Inventario</button>
+          <button class="sb-item" id="sbAgentes" onclick="goView('agentes')">Gestores de Inventario</button>
           <button class="sb-item active" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
           <button class="sb-item" id="sbArchivados" onclick="goView('archivados')">Contabilizados</button>
           <button class="sb-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
@@ -2483,8 +2483,8 @@ td:focus { outline: none !important; box-shadow: none !important; }
       <div id="vAgentes" class="hidden">
         <div class="view-header">
           <div class="view-header-left">
-            <h2>Agentes de Inventario</h2>
-            <p>Selecciona un agente para ver sus recuentos</p>
+            <h2>Gestores de Inventario</h2>
+            <p>Selecciona un gestor para ver sus recuentos</p>
           </div>
         </div>
         <div id="agentesGrid" style="display:flex;flex-direction:column;gap:12px;"></div>
@@ -4169,7 +4169,7 @@ function renderHistory() {
       <div class="hg-breadcrumb">
         <button class="hg-back-btn" onclick="goView('agentes');">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-          Agentes de Inventario
+          Gestores de Inventario
         </button>
         <span class="hg-breadcrumb-sep">›</span>
         <span class="hg-breadcrumb-cur">${titulo}</span>
@@ -5848,29 +5848,6 @@ function renderAgentes() {
         </div>
       </div>`;
   }
-
-  // Card "Todos" para limpiar filtro
-  const todosActivo = _agenteActivoId === null;
-  grid.insertAdjacentHTML("beforeend", `
-    <div class="ag-card ag-card-todos${todosActivo ? " ag-card-active" : ""}" onclick="seleccionarAgente(null)">
-      <div class="ag-left">
-        <div class="ag-avatar" style="background:#64748b18;color:#64748b;border:2px solid #64748b40;">★</div>
-        <div class="ag-info">
-          <div class="ag-name">Todos los agentes</div>
-          <div class="ag-email">Ver todos los recuentos sin filtro</div>
-        </div>
-      </div>
-      <div class="ag-stats">
-        <div class="ag-stat">
-          <div class="ag-stat-val" style="color:#64748b;">${allKeys.length}</div>
-          <div class="ag-stat-lbl">recuentos</div>
-        </div>
-      </div>
-      <div class="ag-progress-wrap"><div class="ag-progress-bar"></div></div>
-      ${todosActivo ? '<div class="ag-active-badge">● Activo</div>' : ''}
-      <div class="ag-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg></div>
-    </div>
-  `);
 
   operadores.forEach((u, i) => {
     grid.insertAdjacentHTML("beforeend", agenteCard(u, colors[i % colors.length]));
