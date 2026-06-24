@@ -5641,8 +5641,10 @@ async function archivarRecuento(name) {
     operadores: operadores.map(u => u.nombre || u.email)
   };
   delete DB[name];
+  // Quitar el recuento de los ops de todos los usuarios
+  (USERS||[]).forEach(u => { if (u.ops) u.ops = u.ops.filter(k => k !== name); });
   saveToLocalStorage();
-  if (activeInv === name) { activeInv = Object.keys(DB)[0] || ""; buildInvSelector(); if (activeInv) loadInventory(); }
+  if (activeInv === name) { activeInv = Object.keys(DB)[0] || ""; if (activeInv) loadInventory(); }
   buildInvSelector();
   renderHistory();
   showToast("📦 Recuento contabilizado y archivado.");
