@@ -3291,6 +3291,7 @@ async function saveToLocalStorage() {
   _persistAll();
   isDirty = false;
   updateSaveIndicator();
+  showToast("💾 Datos guardados correctamente.");
 }
 
 let _saveTimer = null;
