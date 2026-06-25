@@ -2283,14 +2283,16 @@ td:focus { outline: none !important; box-shadow: none !important; }
         </button>
         <div class="sb-children open" id="chlInventario">
           <div class="sb-gestor-group">
-            <div class="sb-group-header" id="sbAgentes" style="padding:0;">
-              <span class="sb-group-left" onclick="goView('agentes')" style="cursor:pointer;flex:1;padding:7px 4px 7px 10px;">
-                <span class="ico">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <div style="display:flex;align-items:center;">
+              <button class="sb-group-header" id="sbAgentes" onclick="goView('agentes')" style="flex:1;border-right:none;border-radius:7px 0 0 7px;">
+                <span class="sb-group-left">
+                  <span class="ico">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                  </span>
+                  Gestores de Inventario
                 </span>
-                Gestores de Inventario
-              </span>
-              <span id="arrGestor" onclick="toggleGestorGroup()" style="cursor:pointer;padding:7px 10px;font-size:9px;color:var(--text3);display:flex;align-items:center;transition:transform .2s;transform:rotate(0deg);">▶</span>
+              </button>
+              <button id="arrGestor" onclick="toggleGestorGroup()" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:9px;color:var(--text3);transition:transform .2s ease;transform:rotate(0deg);border-radius:0 7px 7px 0;height:100%;">▶</button>
             </div>
             <div class="sb-sub-group" id="sbGestorSub">
               <button class="sb-item sb-sub-item" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
