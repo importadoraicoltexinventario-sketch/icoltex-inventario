@@ -2283,14 +2283,14 @@ td:focus { outline: none !important; box-shadow: none !important; }
         </button>
         <div class="sb-children open" id="chlInventario">
           <div class="sb-gestor-group">
-            <div class="sb-group-header" id="sbAgentes" style="padding:7px 10px;">
-              <span class="sb-group-left" onclick="goView('agentes')" style="cursor:pointer;flex:1;">
+            <div class="sb-group-header" id="sbAgentes" style="padding:0;">
+              <span class="sb-group-left" onclick="goView('agentes')" style="cursor:pointer;flex:1;padding:7px 4px 7px 10px;">
                 <span class="ico">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                 </span>
                 Gestores de Inventario
               </span>
-              <span class="sb-arrow" id="arrGestor" onclick="toggleGestorGroup()" style="cursor:pointer;padding:4px;">▶</span>
+              <span id="arrGestor" onclick="toggleGestorGroup()" style="cursor:pointer;padding:7px 10px;font-size:9px;color:var(--text3);display:flex;align-items:center;transition:transform .2s;transform:rotate(0deg);">▶</span>
             </div>
             <div class="sb-sub-group" id="sbGestorSub">
               <button class="sb-item sb-sub-item" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
@@ -5881,17 +5881,17 @@ function seleccionarAgente(uid) {
 
 
 function updateSbGestorSub() {
-  const sub  = document.getElementById('sbGestorSub');
-  const arr  = document.getElementById('arrGestor');
-  const hdr  = document.getElementById('sbAgentes');
+  const sub = document.getElementById('sbGestorSub');
+  const arr = document.getElementById('arrGestor');
+  const hdr = document.getElementById('sbAgentes');
   if (!sub) return;
   if (_agenteActivoId !== null) {
     sub.classList.add('open');
-    if (arr) arr.classList.add('open');
+    if (arr) arr.style.transform = 'rotate(90deg)';
     if (hdr) hdr.classList.add('active');
   } else {
     sub.classList.remove('open');
-    if (arr) arr.classList.remove('open');
+    if (arr) arr.style.transform = 'rotate(0deg)';
     if (hdr) hdr.classList.remove('active');
   }
 }
@@ -5902,18 +5902,17 @@ function toggleGestorGroup() {
   if (!sub) return;
   const isOpen = sub.classList.contains('open');
   if (isOpen) {
-    // Cerrar — limpiar gestor y recuento activo
     _agenteActivoId = null;
     _historialFiltroUserId = null;
     activeInv = "";
     buildInvSelector();
-    updateSbGestorSub();
     sub.classList.remove('open');
-    if (arr) arr.classList.remove('open');
+    if (arr) arr.style.transform = 'rotate(0deg)';
+    document.getElementById('sbAgentes')?.classList.remove('active');
     goView('agentes');
   } else {
     sub.classList.add('open');
-    if (arr) arr.classList.add('open');
+    if (arr) arr.style.transform = 'rotate(90deg)';
     goView('agentes');
   }
 }
