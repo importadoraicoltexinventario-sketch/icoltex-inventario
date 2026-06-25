@@ -477,6 +477,36 @@ select, input, textarea, button { font-family: var(--sans); }
 }
 .sb-item-top .ico { font-size: 13px; width: 18px; text-align: center; opacity: .6; display: flex; align-items: center; justify-content: center; }
 
+/* ── Header de Gestores (tipo grupo) ── */
+.sb-gestor-group { display: flex; flex-direction: column; }
+.sb-gestor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 14px 7px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 7px;
+  margin: 0 6px;
+  transition: background .15s, color .15s;
+  text-align: left;
+  width: calc(100% - 12px);
+  font-family: var(--sans);
+}
+.sb-gestor-header:hover { background: var(--sb-hover); color: #2d3a4a; }
+.sb-gestor-header.active { background: var(--sb-active); color: var(--accent); font-weight: 700; }
+.sb-gestor-arrow {
+  font-size: 9px;
+  color: var(--text3);
+  transition: transform .2s ease;
+  transform: rotate(0deg);
+}
+.sb-gestor-arrow.open { transform: rotate(90deg); }
+
 /* ── Subitems de gestor ── */
 .sb-sub-group { overflow: hidden; transition: max-height .25s ease, opacity .25s ease; max-height: 0; opacity: 0; }
 .sb-sub-group.open { max-height: 200px; opacity: 1; }
@@ -2278,11 +2308,16 @@ td:focus { outline: none !important; box-shadow: none !important; }
           <span class="sb-arrow open" id="arrInventario">▶</span>
         </button>
         <div class="sb-children open" id="chlInventario">
-          <button class="sb-item" id="sbAgentes" onclick="goView('agentes')">Gestores de Inventario</button>
-          <div class="sb-sub-group" id="sbGestorSub">
-            <button class="sb-item sb-sub-item" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
-            <button class="sb-item sb-sub-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
-            <button class="sb-item sb-sub-item" id="sbAnalisis" onclick="goView('analisis')">Análisis de Recuento</button>
+          <div class="sb-gestor-group">
+            <button class="sb-gestor-header" id="sbAgentes" onclick="toggleGestorGroup()">
+              <span id="sbAgentesLabel">Gestores de Inventario</span>
+              <span class="sb-gestor-arrow" id="arrGestor">▶</span>
+            </button>
+            <div class="sb-sub-group" id="sbGestorSub">
+              <button class="sb-item sb-sub-item" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
+              <button class="sb-item sb-sub-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
+              <button class="sb-item sb-sub-item" id="sbAnalisis" onclick="goView('analisis')">Análisis de Recuento</button>
+            </div>
           </div>
           <button class="sb-item" id="sbArchivados" onclick="goView('archivados')">Contabilizados</button>
         </div>
@@ -3589,7 +3624,7 @@ function goView(v) {
     if (el) el.classList.toggle("active", k === v);
   });
   document.getElementById("topTitle").textContent = TITLES[v];
-  if (v === "agentes")    { renderAgentes(); updateSbGestorSub(); }
+  if (v === "agentes")    { renderAgentes(); } updateSbGestorSub();
   if (v === "historial")  { if (role === "admin" && _agenteActivoId === null) _historialFiltroUserId = null; renderHistory(); }
   if (v === "archivados") renderArchivados();
   if (v === "analisis")   { buildAnalisisSelector(); renderAnalisis(); }
@@ -5829,15 +5864,35 @@ function seleccionarAgente(uid) {
 
 
 function updateSbGestorSub() {
-  const sub = document.getElementById('sbGestorSub');
+  const sub  = document.getElementById('sbGestorSub');
+  const arr  = document.getElementById('arrGestor');
+  const hdr  = document.getElementById('sbAgentes');
   if (!sub) return;
   if (_agenteActivoId !== null) {
     sub.classList.add('open');
+    if (arr) arr.classList.add('open');
+    if (hdr) hdr.classList.add('active');
   } else {
     sub.classList.remove('open');
-    // Si estamos en una vista de subitem sin gestor, volver a gestores
-    const subViews = ['historial','matriz','analisis'];
-    // no forzar navegación, solo ocultar
+    if (arr) arr.classList.remove('open');
+    if (hdr) hdr.classList.remove('active');
+  }
+}
+
+function toggleGestorGroup() {
+  const sub = document.getElementById('sbGestorSub');
+  if (!sub) return;
+  const isOpen = sub.classList.contains('open');
+  if (isOpen) {
+    // Cerrar — limpiar gestor activo y volver a gestores
+    _agenteActivoId = null;
+    _historialFiltroUserId = null;
+    buildInvSelector();
+    updateSbGestorSub();
+    goView('agentes');
+  } else {
+    // Abrir — ir a gestores para seleccionar uno
+    goView('agentes');
   }
 }
 
