@@ -5867,8 +5867,12 @@ function seleccionarAgente(uid) {
   _agenteActivoId = uid;
   if (uid !== null) {
     _historialFiltroUserId = uid;
+    // Al cambiar de gestor, limpiar recuento activo hasta que el usuario seleccione uno
+    activeInv = "";
+    document.getElementById("selInv").innerHTML = "";
   } else {
     _historialFiltroUserId = null;
+    activeInv = "";
   }
   buildInvSelector();
   updateSbGestorSub();
@@ -5898,11 +5902,19 @@ function toggleGestorGroup() {
   if (!sub) return;
   const isOpen = sub.classList.contains('open');
   if (isOpen) {
+    // Cerrar — limpiar gestor y recuento activo
+    _agenteActivoId = null;
+    _historialFiltroUserId = null;
+    activeInv = "";
+    buildInvSelector();
+    updateSbGestorSub();
     sub.classList.remove('open');
     if (arr) arr.classList.remove('open');
+    goView('agentes');
   } else {
     sub.classList.add('open');
     if (arr) arr.classList.add('open');
+    goView('agentes');
   }
 }
 
