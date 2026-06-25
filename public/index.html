@@ -477,6 +477,29 @@ select, input, textarea, button { font-family: var(--sans); }
 }
 .sb-item-top .ico { font-size: 13px; width: 18px; text-align: center; opacity: .6; display: flex; align-items: center; justify-content: center; }
 
+/* ── Subitems de gestor ── */
+.sb-sub-group { overflow: hidden; transition: max-height .25s ease, opacity .25s ease; max-height: 0; opacity: 0; }
+.sb-sub-group.open { max-height: 200px; opacity: 1; }
+.sb-sub-item {
+  padding-left: 28px !important;
+  font-size: 11.5px !important;
+  color: var(--text2) !important;
+  position: relative;
+}
+.sb-sub-item::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.sb-sub-item.active::before { background: var(--accent); }
+.sb-sub-item:hover::before { background: var(--accent); }
+
 .sb-footer {
   padding: 14px 16px;
   border-top: 1px solid #e8edf3;
@@ -2256,10 +2279,12 @@ td:focus { outline: none !important; box-shadow: none !important; }
         </button>
         <div class="sb-children open" id="chlInventario">
           <button class="sb-item" id="sbAgentes" onclick="goView('agentes')">Gestores de Inventario</button>
-          <button class="sb-item active" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
+          <div class="sb-sub-group" id="sbGestorSub">
+            <button class="sb-item sb-sub-item" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
+            <button class="sb-item sb-sub-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
+            <button class="sb-item sb-sub-item" id="sbAnalisis" onclick="goView('analisis')">Análisis de Recuento</button>
+          </div>
           <button class="sb-item" id="sbArchivados" onclick="goView('archivados')">Contabilizados</button>
-          <button class="sb-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
-          <button class="sb-item" id="sbAnalisis" onclick="goView('analisis')">Análisis de Recuento</button>
         </div>
       </div>
       <div class="sb-group">
@@ -3564,7 +3589,7 @@ function goView(v) {
     if (el) el.classList.toggle("active", k === v);
   });
   document.getElementById("topTitle").textContent = TITLES[v];
-  if (v === "agentes")    renderAgentes();
+  if (v === "agentes")    { renderAgentes(); updateSbGestorSub(); }
   if (v === "historial")  { if (role === "admin" && _agenteActivoId === null) _historialFiltroUserId = null; renderHistory(); }
   if (v === "archivados") renderArchivados();
   if (v === "analisis")   { buildAnalisisSelector(); renderAnalisis(); }
@@ -5792,15 +5817,28 @@ function renderAgentes() {
 
 function seleccionarAgente(uid) {
   _agenteActivoId = uid;
-  // Filtrar historial y selector
   if (uid !== null) {
     _historialFiltroUserId = uid;
   } else {
     _historialFiltroUserId = null;
   }
   buildInvSelector();
-  // Ir directo a lista de recuentos del agente
+  updateSbGestorSub();
   goView("historial");
+}
+
+
+function updateSbGestorSub() {
+  const sub = document.getElementById('sbGestorSub');
+  if (!sub) return;
+  if (_agenteActivoId !== null) {
+    sub.classList.add('open');
+  } else {
+    sub.classList.remove('open');
+    // Si estamos en una vista de subitem sin gestor, volver a gestores
+    const subViews = ['historial','matriz','analisis'];
+    // no forzar navegación, solo ocultar
+  }
 }
 
 </script>
