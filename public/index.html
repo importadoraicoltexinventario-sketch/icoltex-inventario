@@ -4170,6 +4170,20 @@ function renderHistory() {
     return;
   }
 
+  // ── NIVEL 1: sin gestor activo → mostrar solo botón para ir a gestores ──
+  if (role === "admin") {
+    grid.insertAdjacentHTML("beforeend", `
+      <div style="display:flex;align-items:center;gap:12px;padding:6px 0;">
+        <button class="hg-back-btn" onclick="goView('agentes')" style="font-size:12px;padding:7px 16px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+          Gestores de Inventario
+        </button>
+        <span style="font-size:12px;color:var(--text3);font-family:var(--mono);">Selecciona un gestor para filtrar los recuentos</span>
+      </div>
+    `);
+    return;
+  }
+
   // ── NIVEL 1: cards por operador (sin agente seleccionado) ──
   const grupos = {};
   const sinAsignar = [];
