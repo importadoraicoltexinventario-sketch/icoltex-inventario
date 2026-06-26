@@ -5885,38 +5885,29 @@ function updateSbGestorSub() {
   const children = document.getElementById('chlGestor');
   const arrow    = document.getElementById('arrGestor');
   const header   = document.getElementById('grpGestor');
+  const parent   = document.getElementById('chlInventario');
   if (!children) return;
+  // Limpiar cualquier maxHeight inline que bloquee el CSS
+  if (parent) parent.style.maxHeight = '';
   if (_agenteActivoId !== null) {
     children.classList.add('open');
-    if (arrow) arrow.classList.add('open');
+    if (arrow)  arrow.classList.add('open');
     if (header) header.classList.add('open');
   } else {
     children.classList.remove('open');
-    if (arrow) arrow.classList.remove('open');
+    if (arrow)  arrow.classList.remove('open');
     if (header) header.classList.remove('open');
   }
 }
 
 function toggleGestorGroup() {
-  const header   = document.getElementById('grpGestor');
   const children = document.getElementById('chlGestor');
-  const arrow    = document.getElementById('arrGestor');
-  const parent   = document.getElementById('chlInventario');
   if (!children) return;
   const isOpen = children.classList.contains('open');
-  // Abrir
+  toggleGroup('Gestor'); // usa exactamente el mismo mecanismo que Inventario/Operacion
   if (!isOpen) {
-    children.classList.add('open');
-    if (arrow)  arrow.classList.add('open');
-    if (header) header.classList.add('open');
-    if (parent) parent.style.maxHeight = '800px';
     goView('agentes');
   } else {
-    // Cerrar — limpiar gestor activo
-    children.classList.remove('open');
-    if (arrow)  arrow.classList.remove('open');
-    if (header) header.classList.remove('open');
-    if (parent) parent.style.maxHeight = '400px';
     _agenteActivoId = null;
     _historialFiltroUserId = null;
     activeInv = "";
