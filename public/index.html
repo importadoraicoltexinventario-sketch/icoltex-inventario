@@ -5904,12 +5904,25 @@ function toggleGestorGroup() {
   const parent   = document.getElementById('chlInventario');
   if (!children) return;
   const isOpen = children.classList.contains('open');
-  children.classList.toggle('open', !isOpen);
-  if (arrow) arrow.classList.toggle('open', !isOpen);
-  if (header) header.classList.toggle('open', !isOpen);
-  // Expandir padre para acomodar el subgrupo
-  if (parent) parent.style.maxHeight = !isOpen ? '800px' : '400px';
-  if (!isOpen) goView('agentes');
+  // Abrir
+  if (!isOpen) {
+    children.classList.add('open');
+    if (arrow)  arrow.classList.add('open');
+    if (header) header.classList.add('open');
+    if (parent) parent.style.maxHeight = '800px';
+    goView('agentes');
+  } else {
+    // Cerrar — limpiar gestor activo
+    children.classList.remove('open');
+    if (arrow)  arrow.classList.remove('open');
+    if (header) header.classList.remove('open');
+    if (parent) parent.style.maxHeight = '400px';
+    _agenteActivoId = null;
+    _historialFiltroUserId = null;
+    activeInv = "";
+    buildInvSelector();
+    goView('agentes');
+  }
 }
 
 </script>
