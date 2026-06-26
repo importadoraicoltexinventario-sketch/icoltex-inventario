@@ -2283,7 +2283,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
         </button>
         <div class="sb-children open" id="chlInventario">
           <div class="sb-group">
-            <button class="sb-group-header" id="sbAgentes" onclick="toggleGestorGroup()">
+            <button class="sb-group-header" id="grpGestor" onclick="toggleGestorGroup()">
               <span class="sb-group-left">
                 <span class="ico">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
@@ -2292,7 +2292,8 @@ td:focus { outline: none !important; box-shadow: none !important; }
               </span>
               <span class="sb-arrow" id="arrGestor">▶</span>
             </button>
-            <div class="sb-children" id="sbGestorSub">
+            <div class="sb-children" id="chlGestor">
+              <button class="sb-item sb-sub-item" id="sbAgentes" onclick="goView('agentes')">Ver gestores</button>
               <button class="sb-item sb-sub-item" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
               <button class="sb-item sb-sub-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
               <button class="sb-item sb-sub-item" id="sbAnalisis" onclick="goView('analisis')">Análisis de Recuento</button>
@@ -5881,42 +5882,31 @@ function seleccionarAgente(uid) {
 
 
 function updateSbGestorSub() {
-  const sub = document.getElementById('sbGestorSub');
-  const arr = document.getElementById('arrGestor');
-  const hdr = document.getElementById('sbAgentes');
-  if (!sub) return;
+  const children = document.getElementById('chlGestor');
+  const arrow    = document.getElementById('arrGestor');
+  const header   = document.getElementById('grpGestor');
+  if (!children) return;
   if (_agenteActivoId !== null) {
-    sub.style.maxHeight = sub.scrollHeight + 200 + 'px';
-    if (arr) arr.classList.add('open');
-    if (hdr) hdr.classList.add('open');
+    children.classList.add('open');
+    if (arrow) arrow.classList.add('open');
+    if (header) header.classList.add('open');
   } else {
-    sub.style.maxHeight = '0px';
-    if (arr) arr.classList.remove('open');
-    if (hdr) hdr.classList.remove('open');
+    children.classList.remove('open');
+    if (arrow) arrow.classList.remove('open');
+    if (header) header.classList.remove('open');
   }
 }
 
 function toggleGestorGroup() {
-  const sub = document.getElementById('sbGestorSub');
-  const arr = document.getElementById('arrGestor');
-  const hdr = document.getElementById('sbAgentes');
-  if (!sub) return;
-  const isOpen = sub.style.maxHeight && sub.style.maxHeight !== '0px';
-  if (isOpen) {
-    sub.style.maxHeight = '0px';
-    if (arr) arr.classList.remove('open');
-    if (hdr) hdr.classList.remove('open');
-    _agenteActivoId = null;
-    _historialFiltroUserId = null;
-    activeInv = "";
-    buildInvSelector();
-    goView('agentes');
-  } else {
-    sub.style.maxHeight = sub.scrollHeight + 'px';
-    if (arr) arr.classList.add('open');
-    if (hdr) hdr.classList.add('open');
-    goView('agentes');
-  }
+  const header   = document.getElementById('grpGestor');
+  const children = document.getElementById('chlGestor');
+  const arrow    = document.getElementById('arrGestor');
+  if (!children) return;
+  const isOpen = children.classList.contains('open');
+  children.classList.toggle('open', !isOpen);
+  if (arrow) arrow.classList.toggle('open', !isOpen);
+  if (header) header.classList.toggle('open', !isOpen);
+  if (!isOpen) goView('agentes');
 }
 
 </script>
