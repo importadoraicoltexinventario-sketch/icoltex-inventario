@@ -2282,23 +2282,10 @@ td:focus { outline: none !important; box-shadow: none !important; }
           <span class="sb-arrow open" id="arrInventario">▶</span>
         </button>
         <div class="sb-children open" id="chlInventario">
-          <div class="sb-group">
-            <button class="sb-group-header" id="grpGestor" onclick="toggleGestorGroup()">
-              <span class="sb-group-left">
-                <span class="ico">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                </span>
-                Gestores de Inventario
-              </span>
-              <span class="sb-arrow" id="arrGestor">▶</span>
-            </button>
-            <div class="sb-children" id="chlGestor">
-              <button class="sb-item sb-sub-item" id="sbAgentes" onclick="goView('agentes')">Ver gestores</button>
-              <button class="sb-item sb-sub-item" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
-              <button class="sb-item sb-sub-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
-              <button class="sb-item sb-sub-item" id="sbAnalisis" onclick="goView('analisis')">Análisis de Recuento</button>
-            </div>
-          </div>
+          <button class="sb-item" id="sbAgentes" onclick="goView('agentes')">Gestores de Inventario</button>
+          <button class="sb-item" id="sbHistorial" onclick="goView('historial')" style="display:none;">Lista de Recuentos</button>
+          <button class="sb-item" id="sbMatriz" onclick="goView('matriz')" style="display:none;">Vista Previa</button>
+          <button class="sb-item" id="sbAnalisis" onclick="goView('analisis')" style="display:none;">Análisis de Recuento</button>
           <button class="sb-item" id="sbArchivados" onclick="goView('archivados')">Contabilizados</button>
         </div>
       </div>
@@ -5882,39 +5869,14 @@ function seleccionarAgente(uid) {
 
 
 function updateSbGestorSub() {
-  const children = document.getElementById('chlGestor');
-  const arrow    = document.getElementById('arrGestor');
-  const header   = document.getElementById('grpGestor');
-  const parent   = document.getElementById('chlInventario');
-  if (!children) return;
-  // Limpiar cualquier maxHeight inline que bloquee el CSS
-  if (parent) parent.style.maxHeight = '';
-  if (_agenteActivoId !== null) {
-    children.classList.add('open');
-    if (arrow)  arrow.classList.add('open');
-    if (header) header.classList.add('open');
-  } else {
-    children.classList.remove('open');
-    if (arrow)  arrow.classList.remove('open');
-    if (header) header.classList.remove('open');
-  }
+  const show = _agenteActivoId !== null;
+  ['sbHistorial','sbMatriz','sbAnalisis'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = show ? '' : 'none';
+  });
 }
 
-function toggleGestorGroup() {
-  const children = document.getElementById('chlGestor');
-  if (!children) return;
-  const isOpen = children.classList.contains('open');
-  toggleGroup('Gestor'); // usa exactamente el mismo mecanismo que Inventario/Operacion
-  if (!isOpen) {
-    goView('agentes');
-  } else {
-    _agenteActivoId = null;
-    _historialFiltroUserId = null;
-    activeInv = "";
-    buildInvSelector();
-    goView('agentes');
-  }
-}
+function toggleGestorGroup() { goView('agentes'); }
 
 </script>
 </body>
