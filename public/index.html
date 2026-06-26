@@ -2282,19 +2282,17 @@ td:focus { outline: none !important; box-shadow: none !important; }
           <span class="sb-arrow open" id="arrInventario">▶</span>
         </button>
         <div class="sb-children open" id="chlInventario">
-          <div class="sb-gestor-group">
-            <div style="display:flex;align-items:center;">
-              <button class="sb-group-header" id="sbAgentes" onclick="goView('agentes')" style="flex:1;border-right:none;border-radius:7px 0 0 7px;">
-                <span class="sb-group-left">
-                  <span class="ico">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-                  </span>
-                  Gestores de Inventario
+          <div class="sb-group">
+            <button class="sb-group-header" id="sbAgentes" onclick="toggleGestorGroup()">
+              <span class="sb-group-left">
+                <span class="ico">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
                 </span>
-              </button>
-              <button id="arrGestor" onclick="toggleGestorGroup()" style="background:none;border:none;cursor:pointer;padding:6px 10px;font-size:9px;color:var(--text3);transition:transform .2s ease;transform:rotate(0deg);border-radius:0 7px 7px 0;height:100%;">▶</button>
-            </div>
-            <div class="sb-sub-group" id="sbGestorSub">
+                Gestores de Inventario
+              </span>
+              <span class="sb-arrow" id="arrGestor">▶</span>
+            </button>
+            <div class="sb-children" id="sbGestorSub">
               <button class="sb-item sb-sub-item" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
               <button class="sb-item sb-sub-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
               <button class="sb-item sb-sub-item" id="sbAnalisis" onclick="goView('analisis')">Análisis de Recuento</button>
@@ -5888,33 +5886,35 @@ function updateSbGestorSub() {
   const hdr = document.getElementById('sbAgentes');
   if (!sub) return;
   if (_agenteActivoId !== null) {
-    sub.classList.add('open');
-    if (arr) arr.style.transform = 'rotate(90deg)';
-    if (hdr) hdr.classList.add('active');
+    sub.style.maxHeight = sub.scrollHeight + 200 + 'px';
+    if (arr) arr.classList.add('open');
+    if (hdr) hdr.classList.add('open');
   } else {
-    sub.classList.remove('open');
-    if (arr) arr.style.transform = 'rotate(0deg)';
-    if (hdr) hdr.classList.remove('active');
+    sub.style.maxHeight = '0px';
+    if (arr) arr.classList.remove('open');
+    if (hdr) hdr.classList.remove('open');
   }
 }
 
 function toggleGestorGroup() {
   const sub = document.getElementById('sbGestorSub');
   const arr = document.getElementById('arrGestor');
+  const hdr = document.getElementById('sbAgentes');
   if (!sub) return;
-  const isOpen = sub.classList.contains('open');
+  const isOpen = sub.style.maxHeight && sub.style.maxHeight !== '0px';
   if (isOpen) {
+    sub.style.maxHeight = '0px';
+    if (arr) arr.classList.remove('open');
+    if (hdr) hdr.classList.remove('open');
     _agenteActivoId = null;
     _historialFiltroUserId = null;
     activeInv = "";
     buildInvSelector();
-    sub.classList.remove('open');
-    if (arr) arr.style.transform = 'rotate(0deg)';
-    document.getElementById('sbAgentes')?.classList.remove('active');
     goView('agentes');
   } else {
-    sub.classList.add('open');
-    if (arr) arr.style.transform = 'rotate(90deg)';
+    sub.style.maxHeight = sub.scrollHeight + 'px';
+    if (arr) arr.classList.add('open');
+    if (hdr) hdr.classList.add('open');
     goView('agentes');
   }
 }
