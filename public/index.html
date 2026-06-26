@@ -423,7 +423,7 @@ select, input, textarea, button { font-family: var(--sans); }
 .sb-arrow.open { transform: rotate(90deg); }
 
 .sb-children { overflow: hidden; max-height: 0; transition: max-height .25s ease; }
-.sb-children.open { max-height: 400px; }
+.sb-children.open { max-height: 800px; }
 
 .sb-item {
   display: flex;
@@ -5901,11 +5901,14 @@ function toggleGestorGroup() {
   const header   = document.getElementById('grpGestor');
   const children = document.getElementById('chlGestor');
   const arrow    = document.getElementById('arrGestor');
+  const parent   = document.getElementById('chlInventario');
   if (!children) return;
   const isOpen = children.classList.contains('open');
   children.classList.toggle('open', !isOpen);
   if (arrow) arrow.classList.toggle('open', !isOpen);
   if (header) header.classList.toggle('open', !isOpen);
+  // Expandir padre para acomodar el subgrupo
+  if (parent) parent.style.maxHeight = !isOpen ? '800px' : '400px';
   if (!isOpen) goView('agentes');
 }
 
