@@ -423,7 +423,7 @@ select, input, textarea, button { font-family: var(--sans); }
 .sb-arrow.open { transform: rotate(90deg); }
 
 .sb-children { overflow: hidden; max-height: 0; transition: max-height .25s ease; }
-.sb-children.open { max-height: 800px; }
+.sb-children.open { max-height: 400px; }
 
 .sb-item {
   display: flex;
@@ -476,33 +476,6 @@ select, input, textarea, button { font-family: var(--sans); }
   padding-left: 8px;
 }
 .sb-item-top .ico { font-size: 13px; width: 18px; text-align: center; opacity: .6; display: flex; align-items: center; justify-content: center; }
-
-/* ── Header de Gestores (tipo grupo) ── */
-.sb-gestor-group { display: flex; flex-direction: column; }
-.sb-gestor-group { display: flex; flex-direction: column; }
-
-/* ── Subitems de gestor ── */
-.sb-sub-group { overflow: hidden; transition: max-height .25s ease, opacity .25s ease; max-height: 0; opacity: 0; }
-.sb-sub-group.open { max-height: 200px; opacity: 1; }
-.sb-sub-item {
-  padding-left: 28px !important;
-  font-size: 11.5px !important;
-  color: var(--text2) !important;
-  position: relative;
-}
-.sb-sub-item::before {
-  content: '';
-  position: absolute;
-  left: 16px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--border);
-}
-.sb-sub-item.active::before { background: var(--accent); }
-.sb-sub-item:hover::before { background: var(--accent); }
 
 .sb-footer {
   padding: 14px 16px;
@@ -2189,18 +2162,9 @@ td:focus { outline: none !important; box-shadow: none !important; }
 .ag-progress-fill { height: 100%; border-radius: 999px; transition: width .5s ease; }
 
 .ag-active-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  background: #3b82f6;
-  padding: 2px 10px;
-  border-radius: 20px;
+  position: absolute; bottom: 10px; left: 82px;
+  font-size: 10px; font-weight: 700; color: #3b82f6;
   font-family: var(--mono);
-  margin-top: 4px;
-  width: fit-content;
 }
 .ag-arrow {
   position: absolute; right: 18px; top: 50%; transform: translateY(-50%);
@@ -2283,10 +2247,10 @@ td:focus { outline: none !important; box-shadow: none !important; }
         </button>
         <div class="sb-children open" id="chlInventario">
           <button class="sb-item" id="sbAgentes" onclick="goView('agentes')">Gestores de Inventario</button>
-          <button class="sb-item" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
+          <button class="sb-item active" id="sbHistorial" onclick="goView('historial')">Lista de Recuentos</button>
+          <button class="sb-item" id="sbArchivados" onclick="goView('archivados')">Contabilizados</button>
           <button class="sb-item" id="sbMatriz" onclick="goView('matriz')">Vista Previa</button>
           <button class="sb-item" id="sbAnalisis" onclick="goView('analisis')">Análisis de Recuento</button>
-          <button class="sb-item" id="sbArchivados" onclick="goView('archivados')">Contabilizados</button>
         </div>
       </div>
       <div class="sb-group">
@@ -2393,18 +2357,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
     <div class="content">
 
       <!-- ══ MATRIZ ══ -->
-      <div id="vMatriz" style="position:relative;">
-      <!-- Overlay sin recuento activo -->
-      <div id="noRecuentoOverlay" class="hidden" style="position:absolute;inset:0;background:var(--bg);z-index:10;display:flex;flex-direction:column;padding:24px;gap:12px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <button class="hg-back-btn" onclick="goView('agentes')" style="font-size:12px;padding:7px 16px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Gestores de Inventario
-          </button>
-          <span style="font-size:12px;color:var(--text3);font-family:var(--mono);">Selecciona un gestor y un recuento para continuar</span>
-        </div>
-      </div>
-
+      <div id="vMatriz">
         <div class="inv-selector" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <label>Recuento activo:</label>
           <select id="selInv" onchange="loadInventory()"></select>
@@ -2528,7 +2481,6 @@ td:focus { outline: none !important; box-shadow: none !important; }
       <!-- ══ HISTORIAL ══ -->
       <!-- ══ AGENTES DE INVENTARIO ══ -->
       <div id="vAgentes" class="hidden">
-        <div class="greeting-bar" id="greetingBar"></div>
         <div class="view-header">
           <div class="view-header-left">
             <h2>Gestores de Inventario</h2>
@@ -2539,6 +2491,9 @@ td:focus { outline: none !important; box-shadow: none !important; }
       </div>
 
       <div id="vHistorial" class="hidden">
+
+        <!-- Saludo dinámico -->
+        <div class="greeting-bar" id="greetingBar"></div>
 
         <div class="view-header">
           <div class="view-header-left">
@@ -2579,18 +2534,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
       </div>
 
       <!-- ══ ANÁLISIS ══ -->
-      <div id="vAnalisis" class="hidden" style="position:relative;">
-      <!-- Overlay sin recuento activo -->
-      <div id="noRecuentoOverlay2" class="hidden" style="position:absolute;inset:0;background:var(--bg);z-index:10;display:flex;flex-direction:column;padding:24px;gap:12px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <button class="hg-back-btn" onclick="goView('agentes')" style="font-size:12px;padding:7px 16px;">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Gestores de Inventario
-          </button>
-          <span style="font-size:12px;color:var(--text3);font-family:var(--mono);">Selecciona un gestor y un recuento para continuar</span>
-        </div>
-      </div>
-
+      <div id="vAnalisis" class="hidden">
         <div class="view-header">
           <div class="view-header-left">
             <h2>Análisis de Recuento</h2>
@@ -3098,7 +3042,25 @@ let _notifList = [];
 
 function apiUrl(path) { return path; }
 
-async function apiFetch(path, opts={}) { return {}; } // stub — app funciona offline
+async function apiFetch(path, opts={}) {
+  try {
+    const fetchOpts = {
+      method: opts.method || 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin'
+    };
+    if (opts.body) fetchOpts.body = JSON.stringify(opts.body);
+    const r = await fetch(path, fetchOpts);
+    if (!r.ok) {
+      const e = await r.json().catch(()=>({error:r.statusText}));
+      throw new Error(e.error || r.statusText);
+    }
+    return r.json();
+  } catch(e) {
+    console.error('API error:', path, e.message);
+    throw e;
+  }
+}
 
 function conectarWS() {
   if (!currentUser) return;
@@ -3153,14 +3115,20 @@ function mostrarNotifPush(mensaje) {
   } catch(e) {}
 }
 
-// Actualizar recuento en vivo (BroadcastChannel)
-function actualizarRecuentoEnVivo(nombre, articulos, fechaConteo, comentarios) {
+// Actualizar recuento en vivo cuando otro usuario guarda cambios
+async function actualizarRecuentoEnVivo(nombre) {
   if (!nombre || !DB[nombre]) return;
-  if (articulos) DB[nombre].articulos = articulos;
-  if (fechaConteo) DB[nombre].fechaConteo = fechaConteo;
-  if (comentarios) DB[nombre].comentarios = comentarios;
-  if (nombre === activeInv) { renderMatrix(); showToast('🔄 Datos actualizados en tiempo real.'); }
-  renderHistory();
+  try {
+    const recuentos = await apiFetch('/api/recuentos');
+    const r = recuentos.find(x => x.nombre === nombre);
+    if (!r) return;
+    DB[nombre] = { ...DB[nombre], articulos: r.articulos || [], fechaConteo: r.fechaConteo, comentarios: r.comentarios || [] };
+    if (nombre === activeInv) {
+      renderMatrix();
+      showToast('🔄 Datos actualizados en tiempo real.');
+    }
+    renderHistory();
+  } catch(e) {}
 }
 
 function toggleNotifPanel() {
@@ -3301,28 +3269,40 @@ function resetStorage() {
   showToast('⚠️ Función deshabilitada en modo servidor.');
 }
 
-function loadFromStorage() {
+async function loadFromStorage() {
   try {
-    const raw = localStorage.getItem('inventarioPro_db');
-    if (raw) {
-      const saved = JSON.parse(raw);
-      if (saved.DB)         DB         = saved.DB;
-      if (saved.USERS)      USERS      = saved.USERS;
-      if (saved.SCHEDULE)   SCHEDULE   = saved.SCHEDULE;
-      if (saved.CAL_TEXTS)  CAL_TEXTS  = saved.CAL_TEXTS;
-      if (saved.nextUserId) nextUserId  = saved.nextUserId;
-      if (saved.ARCHIVED)   ARCHIVED   = saved.ARCHIVED;
-    }
-    if (!DB)        DB        = {};
-    if (!USERS || !USERS.length) USERS = JSON.parse(JSON.stringify(DEFAULT_USERS_HASHED));
-    if (!SCHEDULE)  SCHEDULE  = JSON.parse(JSON.stringify(DEFAULT_SCHEDULE));
-    if (!CAL_TEXTS) CAL_TEXTS = {};
-    if (!ARCHIVED)  ARCHIVED  = {};
+    // Cargar recuentos
+    const recuentos = await apiFetch('/api/recuentos');
+    DB = {};
+    recuentos.forEach(r => {
+      DB[r.nombre] = {
+        fecha: r.fecha,
+        almacen: r.almacen,
+        fechaConteo: r.fechaConteo || '',
+        articulos: r.articulos || [],
+        comentarios: r.comentarios || []
+      };
+    });
+    // Cargar usuarios (siempre, para poder asignar operadores)
+    try {
+      const usuarios = await apiFetch('/api/usuarios');
+      USERS = usuarios.map(u => ({
+        id: u.id || u._id,
+        nombre: u.nombre,
+        email: u.email,
+        rol: u.rol,
+        ops: u.ops || []
+      }));
+    } catch(e) { console.warn('No se pudieron cargar usuarios:', e.message); }
+    // Calendario del usuario actual
+    try {
+      const cal = await apiFetch('/api/calendario/' + currentUser.id);
+      CAL_TEXTS = cal || {};
+    } catch(e) { CAL_TEXTS = {}; }
+    SCHEDULE = {};
     return true;
   } catch(e) {
-    console.error('Error cargando datos locales:', e);
-    DB={}; USERS=JSON.parse(JSON.stringify(DEFAULT_USERS_HASHED));
-    SCHEDULE=JSON.parse(JSON.stringify(DEFAULT_SCHEDULE)); CAL_TEXTS={}; ARCHIVED={};
+    console.error('Error cargando datos del servidor:', e);
     return false;
   }
 }
@@ -3347,7 +3327,6 @@ async function saveToLocalStorage() {
   _persistAll();
   isDirty = false;
   updateSaveIndicator();
-  showToast("💾 Datos guardados correctamente.");
 }
 
 let _saveTimer = null;
@@ -3499,21 +3478,16 @@ async function doLogin() {
   const pw = document.getElementById("inPass").value;
   if (!em || !pw) { showToast("⚠️ Completa ambos campos."); return; }
 
-  loadFromStorage();
-  const hashInput = await sha256(pw);
-  // Buscar usuario: con hash guardado, o sin hash (usuarios del servidor sin contraseña local)
-  let user = USERS.find(u => u.email.toLowerCase() === em && (u.passwordHash === hashInput || u.hash === hashInput));
-  // Si el usuario existe pero no tiene hash (viene del servidor), guardarle el hash ahora
-  if (!user) {
-    const userSinHash = USERS.find(u => u.email.toLowerCase() === em && !u.hash && !u.passwordHash);
-    if (userSinHash) {
-      userSinHash.hash = hashInput;
-      _persistAll();
-      user = userSinHash;
-    }
+  let user;
+  try {
+    const res = await apiFetch('/api/login', { method: 'POST', body: { email: em, password: pw } });
+    user = res.usuario;
+  } catch(e) {
+    showToast("❌ Credenciales incorrectas.");
+    return;
   }
-  if (!user) { showToast("❌ Credenciales incorrectas."); return; }
-  currentUser = { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
+
+  currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
   role = user.rol;
 
   document.getElementById("viewLogin").classList.add("hidden");
@@ -3566,7 +3540,7 @@ async function doLogin() {
 async function doLogout() {
   const msg = isDirty ? 'Tienes cambios sin guardar que se perderán.' : '¿Deseas cerrar tu sesión?';
   if (!await appConfirm(msg, { titulo: '¿Cerrar sesión?', icono: '🚪', okLabel: 'Sí, salir', okDanger: false })) return;
-  // logout local
+  await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
   if (_ws) { _ws.onclose = null; _ws.close(); _ws = null; }
   document.getElementById("viewApp").classList.add("hidden");
   document.getElementById("viewLogin").classList.remove("hidden");
@@ -3613,18 +3587,10 @@ function goView(v) {
     if (el) el.classList.toggle("active", k === v);
   });
   document.getElementById("topTitle").textContent = TITLES[v];
-  if (v === "agentes")    { renderAgentes(); } updateSbGestorSub();
+  if (v === "agentes")    renderAgentes();
   if (v === "historial")  { if (role === "admin" && _agenteActivoId === null) _historialFiltroUserId = null; renderHistory(); }
   if (v === "archivados") renderArchivados();
   if (v === "analisis")   { buildAnalisisSelector(); renderAnalisis(); }
-  if (v === "matriz" || v === "analisis") {
-    const ids = ['noRecuentoOverlay','noRecuentoOverlay2'];
-    const canShow = role === "operador" || (_agenteActivoId !== null && activeInv && DB[activeInv]);
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.classList.toggle('hidden', canShow);
-    });
-  }
   if (v === "cronograma") {
     if (role === "admin") {
       abrirSelCrono();
@@ -3677,10 +3643,6 @@ function buildInvSelector() {
 }
 
 function loadInventory() {
-  ['noRecuentoOverlay','noRecuentoOverlay2'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.classList.add('hidden');
-  });
   activeInv = document.getElementById("selInv").value;
   if (!DB[activeInv]) return;
   const inv = DB[activeInv];
@@ -4165,6 +4127,7 @@ function renderGreeting() {
 }
 
 function renderHistory() {
+  renderGreeting();
   const grid  = document.getElementById("historyGrid");
   const empty = document.getElementById("historyEmpty");
   grid.innerHTML = "";
@@ -4228,20 +4191,6 @@ function renderHistory() {
   if (_agenteActivoId !== null && role === "admin") {
     _historialFiltroUserId = _agenteActivoId;
     renderHistory();
-    return;
-  }
-
-  // ── NIVEL 1: sin gestor activo → mostrar solo botón para ir a gestores ──
-  if (role === "admin") {
-    grid.insertAdjacentHTML("beforeend", `
-      <div style="display:flex;align-items:center;gap:12px;padding:6px 0;">
-        <button class="hg-back-btn" onclick="goView('agentes')" style="font-size:12px;padding:7px 16px;">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
-          Gestores de Inventario
-        </button>
-        <span style="font-size:12px;color:var(--text3);font-family:var(--mono);">Selecciona un gestor para filtrar los recuentos</span>
-      </div>
-    `);
     return;
   }
 
@@ -4384,13 +4333,15 @@ function switchToInv(name) {
 async function deleteInventory(name) {
   if (role !== "admin") { showToast("⛔ Solo el administrador puede eliminar recuentos."); return; }
   if (!await appConfirm(`El recuento "${name}" se eliminará permanentemente.`, { titulo: '¿Eliminar recuento?', icono: '🗑️', okLabel: 'Eliminar', okDanger: true })) return;
-  delete DB[name];
-  guardarRecuentoActivo();
-  if (activeInv === name) { activeInv = Object.keys(DB)[0] || ""; }
-  buildInvSelector();
-  if (activeInv) loadInventory();
-  renderHistory();
-  showToast("🗑 Recuento eliminado.");
+  try {
+    await apiFetch('/api/recuentos/' + encodeURIComponent(name), { method: 'DELETE' });
+    delete DB[name];
+    if (activeInv === name) activeInv = Object.keys(DB)[0] || "";
+    buildInvSelector();
+    if (activeInv) loadInventory();
+    renderHistory();
+    showToast("🗑 Recuento eliminado.");
+  } catch(e) { showToast("⚠️ Error al eliminar: " + e.message); }
 }
 
 // ══════════════════════════════════
@@ -4835,7 +4786,7 @@ async function createInventory() {
   try { arts = JSON.parse(document.getElementById("mInvArticulos").value); } catch(e) { arts = []; }
   const selectedIds = window._opsSeleccionados || [];
   try {
-    // guardado local
+    await apiFetch('/api/recuentos', { method: 'POST', body: { nombre, fecha, almacen, articulos: arts, operadoresIds: selectedIds } });
   } catch(e) { showToast("⚠️ Error creando recuento: " + e.message); return; }
   DB[nombre] = { fecha, almacen, creadoEn: new Date().toISOString().slice(0,10), articulos: arts, comentarios: [] };
   selectedIds.forEach(id => {
@@ -5452,20 +5403,16 @@ async function saveUser() {
   const ops = Array.from(checks).map(c => c.value);
   try {
     if (editingUserId) {
-      const idx = USERS.findIndex(u => String(u.id) === String(editingUserId));
-      if (idx >= 0) {
-        USERS[idx] = { ...USERS[idx], nombre, email, rol, ops: rol==="admin"?[]:ops };
-        if (pass.length >= 4) USERS[idx].hash = await sha256(pass);
-      }
+      await apiFetch('/api/usuarios/' + editingUserId, { method: 'PUT', body: { nombre, email, rol, ops: rol==="admin"?[]:ops, password: pass.length>=4?pass:undefined } });
       showToast("✅ Usuario actualizado.");
     } else {
       if (pass.length < 4) { alert("La contraseña debe tener al menos 4 caracteres."); return; }
-      if (USERS.find(u => u.email === email)) { alert("Ya existe un usuario con ese correo."); return; }
-      const newId = Math.max(0, ...USERS.map(u => Number(u.id)||0)) + 1;
-      USERS.push({ id: newId, nombre, email, hash: await sha256(pass), rol, ops: rol==="admin"?[]:ops });
+      await apiFetch('/api/usuarios', { method: 'POST', body: { nombre, email, password: pass, rol, ops: rol==="admin"?[]:ops } });
       showToast("✅ Usuario creado.");
     }
-    _persistAll();
+    // Recargar lista de usuarios
+    const usuarios = await apiFetch('/api/usuarios');
+    USERS = usuarios.map(u => ({ ...u, id: u.id || u._id }));
   } catch(e) { showToast("⚠️ Error: " + e.message); return; }
   closeUserModal();
   renderUsers();
@@ -5474,10 +5421,14 @@ async function saveUser() {
 async function deleteUser(id) {
   if (String(id) === String(currentUser.id)) { alert("No puedes eliminarte a ti mismo."); return; }
   if (!await appConfirm('Este usuario se eliminará permanentemente.', { titulo: '¿Eliminar usuario?', icono: '🗑️', okLabel: 'Eliminar', okDanger: true })) return;
-  USERS = USERS.filter(u => String(u.id) !== String(id));
-  _persistAll();
-  renderUsers();
-  showToast("🗑 Usuario eliminado.");
+  try {
+    await apiFetch('/api/usuarios/' + id, { method: 'DELETE' });
+    // Recargar lista desde servidor
+    const usuarios = await apiFetch('/api/usuarios');
+    USERS = usuarios.map(u => ({ ...u, id: u.id || u._id }));
+    renderUsers();
+    showToast("🗑 Usuario eliminado.");
+  } catch(e) { showToast("⚠️ Error: " + e.message); }
 }
 
 // ══════════════════════════════════
@@ -5520,7 +5471,66 @@ function showToast(msg) {
 // ══════════════════════════════════
 //  INIT — verificar sesión al cargar
 // ══════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => { solicitarPermisoPush(); });
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/api/sesion', { credentials: 'same-origin', headers: { 'Cache-Control': 'no-cache' } });
+    if (!res.ok) return; // sin sesión → queda en login
+    const data = await res.json();
+    const user = data.usuario;
+    if (!user) return;
+
+    currentUser = { id: user.id || user._id, nombre: user.nombre, email: user.email, rol: user.rol, ops: user.ops || [] };
+    role = user.rol;
+
+    document.getElementById("viewLogin").classList.add("hidden");
+    document.getElementById("viewApp").classList.remove("hidden");
+    document.body.style.cssText = "display:block;padding:0;margin:0;background:var(--bg);";
+
+    document.getElementById("sbEmail").textContent = user.email;
+    document.getElementById("sbBadge").textContent = role.toUpperCase();
+    document.getElementById("sbBadge").className = "sb-user-badge " + (role === "admin" ? "badge-admin" : "badge-operador");
+
+    if (role === "admin") {
+      document.getElementById("btnNewInv2").classList.remove("hidden");
+      document.getElementById("adminFechaEdit").classList.remove("hidden");
+      document.getElementById("adminMenu").classList.remove("hidden");
+      document.getElementById("calEditHint").classList.remove("hidden");
+      document.getElementById("addRowBar").classList.remove("hidden");
+      document.getElementById("marcarRealizadoBar").classList.add("hidden");
+      document.getElementById("sessionBanner").classList.add("hidden");
+      document.getElementById("fechaConteoEdit").classList.add("hidden");
+    } else {
+      document.getElementById("adminMenu").classList.add("hidden");
+      document.getElementById("btnNewInv2").classList.add("hidden");
+      document.getElementById("adminFechaEdit").classList.add("hidden");
+      document.getElementById("addRowBar").classList.add("hidden");
+      document.getElementById("marcarRealizadoBar").classList.remove("hidden");
+      document.getElementById("sessionBanner").classList.add("hidden");
+      document.getElementById("fechaConteoEdit").classList.remove("hidden");
+    }
+
+    await loadFromStorage();
+    buildInvSelector();
+    if (role === "operador") {
+      const ops = currentUser.ops;
+      activeInv = (ops.length > 0 && DB[ops[0]]) ? ops[0] : Object.keys(DB)[0];
+      document.getElementById("selInv").value = activeInv;
+    } else {
+      if (Object.keys(DB).length > 0) {
+        activeInv = Object.keys(DB)[0];
+        document.getElementById("selInv").value = activeInv;
+      }
+    }
+    loadInventory();
+    goView(role === "admin" ? "agentes" : "historial");
+    sidebarOpen = true; toggleSidebar();
+    updateSaveIndicator();
+    conectarWS();
+    solicitarPermisoPush();
+  } catch(e) {
+    console.warn('Sin sesión activa:', e.message);
+  }
+});
 
 
 // ── Entry Modal: mueve el panel real al overlay ──
@@ -5795,7 +5805,6 @@ function verDetalleArchivado(name) {
 //  AGENTES DE INVENTARIO
 // ══════════════════════════════════
 function renderAgentes() {
-  renderGreeting();
   const grid = document.getElementById("agentesGrid");
   grid.innerHTML = "";
   const operadores = (USERS||[]).filter(u => u.rol === "operador");
@@ -5819,7 +5828,6 @@ function renderAgentes() {
           <div class="ag-info">
             <div class="ag-name">${esc(u.nombre||u.email)}</div>
             <div class="ag-email">${esc(u.email)}</div>
-        ${isActive ? '<div class="ag-active-badge">● Gestor activo</div>' : ''}
           </div>
         </div>
         <div class="ag-stats">
@@ -5835,7 +5843,7 @@ function renderAgentes() {
         <div class="ag-progress-wrap">
           <div class="ag-progress-bar"><div class="ag-progress-fill" style="width:${pct}%;background:${barColor};"></div></div>
         </div>
-
+        ${isActive ? '<div class="ag-active-badge">● Agente activo</div>' : ''}
         <div class="ag-arrow">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
@@ -5853,24 +5861,16 @@ function renderAgentes() {
 
 function seleccionarAgente(uid) {
   _agenteActivoId = uid;
+  // Filtrar historial y selector
   if (uid !== null) {
     _historialFiltroUserId = uid;
-    // Al cambiar de gestor, limpiar recuento activo hasta que el usuario seleccione uno
-    activeInv = "";
-    document.getElementById("selInv").innerHTML = "";
   } else {
     _historialFiltroUserId = null;
-    activeInv = "";
   }
   buildInvSelector();
-  updateSbGestorSub();
+  // Ir directo a lista de recuentos del agente
   goView("historial");
 }
-
-
-function updateSbGestorSub() { /* items siempre visibles */ }
-
-function toggleGestorGroup() { goView('agentes'); }
 
 </script>
 </body>
