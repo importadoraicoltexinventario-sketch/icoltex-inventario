@@ -3619,10 +3619,10 @@ function goView(v) {
   if (v === "analisis")   { buildAnalisisSelector(); renderAnalisis(); }
   if (v === "matriz" || v === "analisis") {
     const ids = ['noRecuentoOverlay','noRecuentoOverlay2'];
-    const hasRecuento = activeInv && DB[activeInv];
+    const canShow = role === "operador" || (_agenteActivoId !== null && activeInv && DB[activeInv]);
     ids.forEach(id => {
       const el = document.getElementById(id);
-      if (el) el.classList.toggle('hidden', !!hasRecuento);
+      if (el) el.classList.toggle('hidden', canShow);
     });
   }
   if (v === "cronograma") {
