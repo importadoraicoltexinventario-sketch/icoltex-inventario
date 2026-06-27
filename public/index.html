@@ -3508,6 +3508,7 @@ async function doLogin() {
     document.getElementById("fechaConteoEdit").classList.add("hidden");
   } else {
     document.getElementById("adminMenu").classList.add("hidden");
+    document.getElementById("sbAgentes").classList.add("hidden");
     document.getElementById("btnNewInv2").classList.add("hidden");
     document.getElementById("adminFechaEdit").classList.add("hidden");
     document.getElementById("addRowBar").classList.add("hidden");
@@ -3580,7 +3581,7 @@ const TITLES = { matriz:"Vista Previa", historial:"Lista de Recuentos", analisis
 const SB_IDS = { agentes:"sbAgentes", matriz:"sbMatriz", historial:"sbHistorial", archivados:"sbArchivados", analisis:"sbAnalisis", cronograma:"sbCronograma", usuarios:"sbUsuarios" };
 
 function goView(v) {
-  if (role === "operador" && v === "usuarios") return;
+  if (role === "operador" && (v === "usuarios" || v === "agentes")) return;
   Object.keys(VIEWS).forEach(k => {
     document.getElementById(VIEWS[k]).classList.toggle("hidden", k !== v);
     const el = document.getElementById(SB_IDS[k]);
@@ -5501,6 +5502,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       document.getElementById("fechaConteoEdit").classList.add("hidden");
     } else {
       document.getElementById("adminMenu").classList.add("hidden");
+      document.getElementById("sbAgentes").classList.add("hidden");
       document.getElementById("btnNewInv2").classList.add("hidden");
       document.getElementById("adminFechaEdit").classList.add("hidden");
       document.getElementById("addRowBar").classList.add("hidden");
