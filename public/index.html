@@ -2172,6 +2172,11 @@ td:focus { outline: none !important; box-shadow: none !important; }
 }
 .ag-card:hover .ag-arrow { color: var(--accent); transform: translateY(-50%) translateX(3px); }
 
+.sel-lock-msg { display:none; text-align:center; padding:48px 20px; color:var(--text3); font-family:var(--mono); font-size:13px; }
+#vMatriz.locked > *:not(#matrizPlaceholder),
+#vAnalisis.locked > *:not(#analisisPlaceholder) { display:none !important; }
+#vMatriz.locked > #matrizPlaceholder,
+#vAnalisis.locked > #analisisPlaceholder { display:block; }
 </style>
 </head>
 <body>
@@ -2358,6 +2363,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
 
       <!-- ══ MATRIZ ══ -->
       <div id="vMatriz">
+        <div id="matrizPlaceholder" class="sel-lock-msg">Selecciona un gestor y un recuento para ver la vista previa.</div>
         <div class="inv-selector" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <label>Recuento activo:</label>
           <select id="selInv" onchange="loadInventory()"></select>
@@ -2535,6 +2541,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
 
       <!-- ══ ANÁLISIS ══ -->
       <div id="vAnalisis" class="hidden">
+        <div id="analisisPlaceholder" class="sel-lock-msg">Selecciona un gestor y un recuento para ver el análisis.</div>
         <div class="view-header">
           <div class="view-header-left">
             <h2>Análisis de Recuento</h2>
@@ -3324,9 +3331,8 @@ function _persistAll() {
 }
 
 async function saveToLocalStorage() {
-  _persistAll();
-  isDirty = false;
-  updateSaveIndicator();
+  await guardarRecuentoActivo();
+  if (!isDirty) showToast('✅ Guardado en el servidor.');
 }
 
 let _saveTimer = null;
@@ -3334,13 +3340,28 @@ function markDirty() {
   isDirty = true;
   updateSaveIndicator();
   clearTimeout(_saveTimer);
-  _saveTimer = setTimeout(() => saveToLocalStorage(), 2000);
+  _saveTimer = setTimeout(() => guardarRecuentoActivo(), 2000);
 }
 
 async function guardarRecuentoActivo() {
-  _persistAll();
-  isDirty = false;
-  updateSaveIndicator();
+  if (!activeInv || !DB[activeInv]) { isDirty = false; updateSaveIndicator(); return; }
+  const r = DB[activeInv];
+  try {
+    await apiFetch('/api/recuentos/' + encodeURIComponent(activeInv), {
+      method: 'PUT',
+      body: {
+        articulos: r.articulos || [],
+        fechaConteo: r.fechaConteo,
+        comentarios: r.comentarios || [],
+        fecha: r.fecha,
+        almacen: r.almacen
+      }
+    });
+    isDirty = false;
+    updateSaveIndicator();
+  } catch(e) {
+    showToast('⚠️ Error guardando en servidor: ' + e.message);
+  }
 }
 
 function updateSaveIndicator() {
@@ -3588,10 +3609,18 @@ function goView(v) {
     if (el) el.classList.toggle("active", k === v);
   });
   document.getElementById("topTitle").textContent = TITLES[v];
+  const _haySel = activeInv && DB[activeInv] && (role === "operador" || _agenteActivoId !== null);
+  if (v === "matriz") {
+    document.getElementById("vMatriz").classList.toggle("locked", !_haySel);
+    if (_haySel) renderMatrix();
+  }
   if (v === "agentes")    renderAgentes();
   if (v === "historial")  { if (role === "admin" && _agenteActivoId === null) _historialFiltroUserId = null; renderHistory(); }
   if (v === "archivados") renderArchivados();
-  if (v === "analisis")   { buildAnalisisSelector(); renderAnalisis(); }
+  if (v === "analisis")   {
+    document.getElementById("vAnalisis").classList.toggle("locked", !_haySel);
+    if (_haySel) { buildAnalisisSelector(); renderAnalisis(); }
+  }
   if (v === "cronograma") {
     if (role === "admin") {
       abrirSelCrono();
