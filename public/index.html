@@ -3281,14 +3281,27 @@ async function loadFromStorage() {
     // Cargar recuentos
     const recuentos = await apiFetch('/api/recuentos');
     DB = {};
+    if (!ARCHIVED) ARCHIVED = {}; else ARCHIVED = {};
     recuentos.forEach(r => {
-      DB[r.nombre] = {
-        fecha: r.fecha,
-        almacen: r.almacen,
-        fechaConteo: r.fechaConteo || '',
-        articulos: r.articulos || [],
-        comentarios: r.comentarios || []
-      };
+      if (r.archivado) {
+        ARCHIVED[r.nombre] = {
+          fecha: r.fecha,
+          almacen: r.almacen,
+          fechaConteo: r.fechaConteo || '',
+          articulos: r.articulos || [],
+          comentarios: r.comentarios || [],
+          archivedAt: r.archivedAt || '',
+          operadores: r.operadoresArchivado || []
+        };
+      } else {
+        DB[r.nombre] = {
+          fecha: r.fecha,
+          almacen: r.almacen,
+          fechaConteo: r.fechaConteo || '',
+          articulos: r.articulos || [],
+          comentarios: r.comentarios || []
+        };
+      }
     });
     // Cargar usuarios (siempre, para poder asignar operadores)
     try {
@@ -5663,17 +5676,22 @@ async function archivarRecuento(name) {
     { titulo: '¿Contabilizar recuento?', icono: '📦', okLabel: 'Contabilizar', okDanger: false }
   )) return;
 
+  const operadores = (USERS||[]).filter(u => u.rol === "operador" && u.ops && u.ops.includes(name)).map(u => u.nombre || u.email);
+  const archivedAt = new Date().toISOString();
+  try {
+    await apiFetch('/api/recuentos/' + encodeURIComponent(name), {
+      method: 'PUT',
+      body: { archivado: true, archivedAt, operadores }
+    });
+  } catch(e) { showToast("⚠️ Error al contabilizar: " + e.message); return; }
+
   if (!ARCHIVED) ARCHIVED = {};
-  const operadores = (USERS||[]).filter(u => u.rol === "operador" && u.ops && u.ops.includes(name));
   ARCHIVED[name] = {
     ...DB[name],
-    archivedAt: new Date().toISOString(),
-    operadores: operadores.map(u => u.nombre || u.email)
+    archivedAt,
+    operadores
   };
   delete DB[name];
-  // Quitar el recuento de los ops de todos los usuarios
-  (USERS||[]).forEach(u => { if (u.ops) u.ops = u.ops.filter(k => k !== name); });
-  saveToLocalStorage();
   if (activeInv === name) { activeInv = Object.keys(DB)[0] || ""; if (activeInv) loadInventory(); }
   buildInvSelector();
   renderHistory();
@@ -5769,8 +5787,10 @@ function renderArchivados() {
 
 async function eliminarArchivado(name) {
   if (!await appConfirm(`¿Eliminar permanentemente el archivo "${name}"?`, { titulo: 'Eliminar archivo', icono: '🗑️', okLabel: 'Eliminar', okDanger: true })) return;
+  try {
+    await apiFetch('/api/recuentos/' + encodeURIComponent(name), { method: 'DELETE' });
+  } catch(e) { showToast("⚠️ Error al eliminar: " + e.message); return; }
   delete ARCHIVED[name];
-  saveToLocalStorage();
   renderArchivados();
   showToast("🗑 Archivo eliminado.");
 }
