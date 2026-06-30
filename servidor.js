@@ -281,7 +281,7 @@ app.post('/api/recuentos', auth, soloAdmin, async (req, res) => {
 
 app.put('/api/recuentos/:nombre', auth, async (req, res) => {
   const nombre = decodeURIComponent(req.params.nombre);
-  const { articulos, fechaConteo, fecha, almacen, comentarios } = req.body;
+  const { articulos, fechaConteo, fecha, almacen, comentarios, archivado, archivedAt, operadores } = req.body;
   const update = {};
   if (articulos !== undefined) update.articulos = articulos;
   if (comentarios !== undefined) update.comentarios = comentarios;
@@ -289,6 +289,9 @@ app.put('/api/recuentos/:nombre', auth, async (req, res) => {
   if (req.session.usuario.rol === 'admin') {
     if (fecha !== undefined) update.fecha = fecha;
     if (almacen !== undefined) update.almacen = almacen;
+    if (archivado !== undefined) update.archivado = archivado;
+    if (archivedAt !== undefined) update.archivedAt = archivedAt;
+    if (operadores !== undefined) update.operadoresArchivado = operadores;
   }
   await db.collection('recuentos').updateOne({ nombre }, { $set: update });
   broadcast({ tipo: 'recuento_actualizado', nombre });
