@@ -4179,7 +4179,6 @@ function renderHistory() {
   let keys = Object.keys(DB);
   if (role === "operador") {
     keys = keys.filter(k => currentUser.ops.includes(k));
-    if (keys.length === 0) { empty.classList.remove("hidden"); return; }
     empty.classList.add("hidden");
     const _h = new Date().getHours();
     const _saludo = _h < 12 ? "¡Buenos días" : _h < 18 ? "¡Buenas tardes" : "¡Buenas noches";
@@ -4191,7 +4190,18 @@ function renderHistory() {
         <div class="greeting-text">${_saludo}, <span>${_nombre}</span>! 👋</div>
         <div class="greeting-sub">${_msg}</div>
       </div>`;
-    grid.innerHTML = _saludoHTML + `<div class="hg-cards">${keys.map(cardHTML).join("")}</div>`;
+    if (keys.length === 0) {
+      grid.innerHTML = _saludoHTML + `
+        <div class="history-empty">
+          <div class="history-empty-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V21H3V8"/><path d="M23 3H1v5h22V3z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          </div>
+          <div class="history-empty-text">NO HAY RECUENTOS PARA GESTIONAR</div>
+          <div class="history-empty-sub">Crea un nuevo recuento para comenzar</div>
+        </div>`;
+    } else {
+      grid.innerHTML = _saludoHTML + `<div class="hg-cards">${keys.map(cardHTML).join("")}</div>`;
+    }
     return;
   }
 
