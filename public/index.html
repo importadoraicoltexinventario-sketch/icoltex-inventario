@@ -2486,6 +2486,10 @@ td:focus { outline: none !important; box-shadow: none !important; }
       <!-- ══ HISTORIAL ══ -->
       <!-- ══ AGENTES DE INVENTARIO ══ -->
       <div id="vAgentes" class="hidden">
+
+        <!-- Saludo dinámico -->
+        <div class="greeting-bar" id="greetingBar"></div>
+
         <div class="view-header">
           <div class="view-header-left">
             <h2>Gestores de Inventario</h2>
@@ -2496,9 +2500,6 @@ td:focus { outline: none !important; box-shadow: none !important; }
       </div>
 
       <div id="vHistorial" class="hidden">
-
-        <!-- Saludo dinámico -->
-        <div class="greeting-bar" id="greetingBar"></div>
 
         <div class="view-header">
           <div class="view-header-left">
@@ -4171,7 +4172,6 @@ function renderGreeting() {
 }
 
 function renderHistory() {
-  renderGreeting();
   const grid  = document.getElementById("historyGrid");
   const empty = document.getElementById("historyEmpty");
   grid.innerHTML = "";
@@ -4237,6 +4237,20 @@ function renderHistory() {
     renderHistory();
     return;
   }
+
+  // ── NIVEL 1: sin gestor seleccionado → solo botón para volver a Gestores ──
+  grid.insertAdjacentHTML("beforeend", `
+    <div class="hg-breadcrumb">
+      <button class="hg-back-btn" onclick="goView('agentes');">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+        Gestores de Inventario
+      </button>
+    </div>
+    <div style="text-align:center;padding:40px 20px;color:var(--text3);font-family:var(--mono);font-size:13px;">
+      Selecciona un gestor para ver sus recuentos.
+    </div>
+  `);
+  return;
 
   // ── NIVEL 1: cards por operador (sin agente seleccionado) ──
   const grupos = {};
@@ -5858,6 +5872,7 @@ function verDetalleArchivado(name) {
 //  AGENTES DE INVENTARIO
 // ══════════════════════════════════
 function renderAgentes() {
+  renderGreeting();
   const grid = document.getElementById("agentesGrid");
   grid.innerHTML = "";
   const operadores = (USERS||[]).filter(u => u.rol === "operador");
