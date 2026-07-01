@@ -4181,7 +4181,17 @@ function renderHistory() {
     keys = keys.filter(k => currentUser.ops.includes(k));
     if (keys.length === 0) { empty.classList.remove("hidden"); return; }
     empty.classList.add("hidden");
-    grid.innerHTML = `<div class="hg-cards">${keys.map(cardHTML).join("")}</div>`;
+    const _h = new Date().getHours();
+    const _saludo = _h < 12 ? "¡Buenos días" : _h < 18 ? "¡Buenas tardes" : "¡Buenas noches";
+    const _msg = _h < 12 ? "Que tengas una excelente jornada de trabajo." : _h < 18 ? "Continúa con el excelente trabajo." : "Gracias por tu dedicación hoy.";
+    const _nombre = (currentUser.nombre||"").split(" ")[0];
+    const _saludoHTML = `
+      <div class="greeting-bar">
+        <div class="greeting-time">${new Date().toLocaleDateString('es-CO',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
+        <div class="greeting-text">${_saludo}, <span>${_nombre}</span>! 👋</div>
+        <div class="greeting-sub">${_msg}</div>
+      </div>`;
+    grid.innerHTML = _saludoHTML + `<div class="hg-cards">${keys.map(cardHTML).join("")}</div>`;
     return;
   }
 
