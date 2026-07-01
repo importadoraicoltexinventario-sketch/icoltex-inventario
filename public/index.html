@@ -3000,6 +3000,7 @@ let _historialFiltroUserId = null;
 let _agenteActivoId = null; // null = todos, string = agente seleccionado // null = vista de operadores, string = vista de recuentos del operador
 let role = "", currentUser = null;
 let activeInv = "", selectedRow = null, editingUserId = null;
+let _recuentoSeleccionado = false; // true solo tras clic explícito en un recuento de la lista
 let sidebarOpen = false;
 let calYear = 2026, calMonth = 5;
 let calOwner = null;  // null = propio, { id, nombre, email } = operador seleccionado
@@ -3209,6 +3210,7 @@ async function abrirNotifRecuento(i) {
   // Ir al recuento
   if (nombre && DB && DB[nombre]) {
     activeInv = nombre;
+    _recuentoSeleccionado = true;
     document.getElementById("selInv").value = nombre;
     loadInventory();
     goView("matriz");
@@ -3621,12 +3623,12 @@ function goView(v) {
     if (el) el.classList.toggle("active", k === v);
   });
   document.getElementById("topTitle").textContent = TITLES[v];
-  const _haySel = activeInv && DB[activeInv] && (role === "operador" || _agenteActivoId !== null);
+  const _haySel = _recuentoSeleccionado && activeInv && DB[activeInv];
   if (v === "matriz") {
     document.getElementById("vMatriz").classList.toggle("locked", !_haySel);
     if (_haySel) renderMatrix();
   }
-  if (v === "agentes")    renderAgentes();
+  if (v === "agentes")    { _recuentoSeleccionado = false; renderAgentes(); }
   if (v === "historial")  { if (role === "admin" && _agenteActivoId === null) _historialFiltroUserId = null; renderHistory(); }
   if (v === "archivados") renderArchivados();
   if (v === "analisis")   {
@@ -4366,6 +4368,7 @@ function cardHTML(name) {
 }
 function switchToInv(name) {
   activeInv = name;
+  _recuentoSeleccionado = true;
   document.getElementById("selInv").value = name;
   loadInventory();
   goView("matriz");
@@ -5911,6 +5914,7 @@ function renderAgentes() {
 
 function seleccionarAgente(uid) {
   _agenteActivoId = uid;
+  _recuentoSeleccionado = false;
   // Filtrar historial y selector
   if (uid !== null) {
     _historialFiltroUserId = uid;
