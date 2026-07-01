@@ -753,12 +753,14 @@ select, input, textarea, button { font-family: var(--sans); }
 .calc-history-modal-bg {
   position: fixed;
   inset: 0;
-  background: rgba(15,35,70,.32);
-  z-index: 300;
+  left: var(--sb-w);          /* respeta el espacio del menú lateral */
+  background: transparent;    /* no oscurece: el editor sigue visible */
+  z-index: 1300;              /* por encima del editor para poder verlo y usarlo */
   display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(4px);
+  align-items: flex-end;      /* abajo, para no tapar el editor */
+  justify-content: flex-end;  /* a la derecha */
+  padding: 0 24px 24px 0;
+  pointer-events: none;       /* deja pasar los clics al editor que está detrás */
   animation: fadein .15s ease;
 }
 .calc-history-modal {
@@ -770,6 +772,7 @@ select, input, textarea, button { font-family: var(--sans); }
   max-width: 95vw;
   box-shadow: 0 16px 48px rgba(30,80,150,.18);
   overflow: hidden;
+  pointer-events: auto;       /* la tarjeta del historial sí es interactiva */
 }
 .calc-history-modal-header {
   background: linear-gradient(135deg, #ddeeff, #cce4fa);
@@ -1813,14 +1816,15 @@ td:focus { outline: none !important; box-shadow: none !important; }
   display: none;
   position: fixed;
   inset: 0;
+  left: var(--sb-w);        /* respeta el espacio del menú lateral */
   background: rgba(15,30,60,.45);
   z-index: 1200;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 60px;
+  padding-top: 58px;        /* pegado bajo la barra superior */
 }
 .entry-modal-overlay.active { display: flex; }
-.entry-modal-slot { width: min(96vw, 720px); }
+.entry-modal-slot { width: min(92%, 1100px); }  /* horizontal, ancho pero no completo */
 
 /* ── Export Dropdown ── */
 .export-dropdown { position: relative; display: inline-flex; }
