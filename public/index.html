@@ -4179,7 +4179,10 @@ function renderHistory() {
   let keys = Object.keys(DB);
   if (role === "operador") {
     keys = keys.filter(k => currentUser.ops.includes(k));
-    _historialFiltroUserId = currentUser.id;
+    if (keys.length === 0) { empty.classList.remove("hidden"); return; }
+    empty.classList.add("hidden");
+    grid.innerHTML = `<div class="hg-cards">${keys.map(cardHTML).join("")}</div>`;
+    return;
   }
 
   if (keys.length === 0) { empty.classList.remove("hidden"); return; }
