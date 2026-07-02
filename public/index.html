@@ -914,12 +914,12 @@ select, input, textarea, button { font-family: var(--sans); }
 
 .matrix-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;   /* 'collapse' impide que el thead sticky funcione en Chrome */
+  border-spacing: 0;
   border: none;
   font-family: var(--mono);
   font-size: 12px;
   border-radius: 0 0 12px 12px;
-  overflow: hidden;
   box-shadow: 0 2px 8px rgba(30,80,150,.08);
 }
 
@@ -934,6 +934,20 @@ select, input, textarea, button { font-family: var(--sans); }
   font-size: 10px;
   letter-spacing: 1px;
   text-transform: uppercase;
+}
+
+/* ── Bloque superior del recuento fijo al hacer scroll ── */
+#vMatriz { --matriz-topbar-h: 61px; --matriz-sticky-h: 297px; }
+.matriz-sticky {
+  position: sticky;
+  top: var(--matriz-topbar-h);   /* justo debajo de la barra superior */
+  z-index: 100;
+  background: #eaf2fb;           /* mismo fondo del contenido */
+}
+.matrix-table thead th {
+  position: sticky;
+  top: calc(var(--matriz-topbar-h) + var(--matriz-sticky-h)); /* debajo del bloque superior */
+  z-index: 90;
 }
 
 .matrix-table td {
@@ -2367,6 +2381,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
       <!-- ══ MATRIZ ══ -->
       <div id="vMatriz">
         <div id="matrizPlaceholder" class="sel-lock-msg">Selecciona un gestor y un recuento para ver la vista previa.</div>
+        <div class="matriz-sticky">
         <div class="inv-selector" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
           <label>Recuento activo:</label>
           <select id="selInv" onchange="loadInventory()"></select>
@@ -2443,6 +2458,7 @@ td:focus { outline: none !important; box-shadow: none !important; }
             ⚡ VISTA RÁPIDA
           </button>
         </div>
+        </div><!-- /.matriz-sticky -->
         <table class="matrix-table" id="matrizTable" oncontextmenu="showTableCtxMenu(event)">
           <thead>
             <tr>
