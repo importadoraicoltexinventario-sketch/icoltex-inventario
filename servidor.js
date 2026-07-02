@@ -392,6 +392,84 @@ app.get('/api/calendario', auth, async (req, res) => {
   res.json(obj);
 });
 
+// ── Asistente IA (Google Gemini) ───────────────────────────────────────────
+app.post('/api/asistente', auth, async (req, res) => {
+  try {
+    const { pregunta, contexto, historial } = req.body || {};
+    if (!pregunta) return res.status(400).json({ error: 'Falta la pregunta.' });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({ error: 'GEMINI_API_KEY no configurada en el servidor.' });
+    }
+
+    const systemPrompt = `Eres el asistente de "Inventario Pro", una aplicación de recuentos
+de inventario físico vs. SAP de una empresa textil colombiana.
+Respondes SIEMPRE en español, de forma breve, clara y práctica.
+
+Tienes acceso a los datos del recuento activo (abajo). Úsalos para responder
+preguntas sobre diferencias, totales, artículos sin contar (físico = 0 con sap > 0),
+mayores desviaciones, resúmenes, etc. Si te piden cálculos, hazlos con precisión.
+Si no hay recuento activo o falta información, dilo claramente.
+No inventes datos que no estén en el contexto.
+
+=== DATOS DEL RECUENTO ACTIVO ===
+${contexto || 'Sin contexto disponible.'}`;
+
+    // Gemini usa roles "user" y "model" (no "assistant")
+    const contents = (Array.isArray(historial) && historial.length
+      ? historial
+      : [{ role: 'user', content: pregunta }]
+    ).map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content || '' }]
+    }));
+
+    // Modelo con nivel gratuito. Si tu clave no lo acepta, prueba con
+    // 'gemini-2.0-flash' o consulta los modelos vigentes en https://ai.google.dev
+    const MODELO = 'gemini-2.5-flash';
+
+    const r = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + MODELO + ':generateContent',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': process.env.GEMINI_API_KEY
+        },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents: contents,
+          generationConfig: { maxOutputTokens: 1024 }
+        })
+      }
+    );
+
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      console.error('Error API Gemini:', r.status, JSON.stringify(err).slice(0, 300));
+      if (r.status === 429) {
+        return res.status(502).json({ error: 'Límite gratuito de Gemini alcanzado por ahora. Intenta más tarde.' });
+      }
+      return res.status(502).json({ error: 'Error del servicio de IA (' + r.status + ')' });
+    }
+
+    const data = await r.json();
+    const respuesta = ((data.candidates || [])[0]?.content?.parts || [])
+      .map(p => p.text || '')
+      .join('\n')
+      .trim();
+
+    if (!respuesta) {
+      console.error('Respuesta vacía de Gemini:', JSON.stringify(data).slice(0, 300));
+      return res.status(502).json({ error: 'La IA no devolvió respuesta.' });
+    }
+
+    res.json({ respuesta });
+  } catch (e) {
+    console.error('Error /api/asistente:', e);
+    res.status(500).json({ error: 'Error interno del asistente.' });
+  }
+});
+
 // ── Ping para mantener el servidor activo en Render ────────────────────────
 // (Render free tier duerme tras 15 min de inactividad)
 app.get('/ping', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
