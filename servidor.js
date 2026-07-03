@@ -344,6 +344,20 @@ app.post('/api/notificaciones/aviso-completado', auth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ── Mensaje directo entre usuarios (usado por el Asistente IA) ─────────────
+app.post('/api/notificaciones/enviar', auth, async (req, res) => {
+  const { paraId, mensaje } = req.body || {};
+  if (!paraId || !mensaje) return res.status(400).json({ error: 'Faltan destinatario o mensaje.' });
+  enviarNotificacion(
+    String(paraId),
+    req.session.usuario.id,
+    req.session.usuario.nombre,
+    'mensaje_directo',
+    `💬 ${req.session.usuario.nombre}: ${mensaje}`
+  );
+  res.json({ ok: true });
+});
+
 // ── Calendario por usuario ────────────────────────────────────────────────
 // GET  /api/calendario/:userId  → obtener calendario de un usuario
 // PUT  /api/calendario/:userId  → guardar/borrar un día (admin puede editar cualquiera)
@@ -401,7 +415,7 @@ app.post('/api/asistente', auth, async (req, res) => {
       return res.status(500).json({ error: 'GEMINI_API_KEY no configurada en el servidor.' });
     }
 
-    const systemPrompt = `Eres NIEVE, el mayordomo digital de "Inventario Pro", la aplicación de
+    const systemPrompt = `Eres WINSTON, el mayordomo digital de "Inventario Pro", la aplicación de
 recuentos de inventario físico vs. SAP de ICOLTEX, una empresa textil colombiana.
 
 PERSONALIDAD:
@@ -431,6 +445,9 @@ ACCIONES DISPONIBLES (usa exactamente estos nombres y parámetros):
 - editar_fisico {"codigo": "código del artículo", "valor": número}
 - exportar_csv {}
 - archivar_recuento {"nombre": "nombre del recuento"}  (contabilizar un recuento)
+- enviar_mensaje {"usuario": "nombre o email del destinatario", "mensaje": "el texto a enviar"}
+  (envía una notificación en tiempo real a otro usuario de la app; redacta el mensaje de forma
+  clara y breve a partir de lo que pidan, por ejemplo "termina el nylon" → "Por favor termina el conteo del nylon")
 
 REGLAS DE ACCIONES:
 - Solo el rol "admin" puede: cambiar contraseñas, archivar recuentos. Si el usuario actual no es admin,
