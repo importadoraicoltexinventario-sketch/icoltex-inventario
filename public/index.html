@@ -3341,7 +3341,13 @@ async function loadFromStorage() {
         rol: u.rol,
         ops: u.ops || []
       }));
-    } catch(e) { console.warn('No se pudieron cargar usuarios:', e.message); }
+    } catch(e) {
+      // Operadores no pueden ver /api/usuarios: usar directorio básico
+      try {
+        const dir = await apiFetch('/api/usuarios/directorio');
+        USERS = dir.map(u => ({ id: u.id, nombre: u.nombre, email: '', rol: u.rol, ops: [] }));
+      } catch(e2) { console.warn('No se pudieron cargar usuarios:', e2.message); }
+    }
     // Calendario del usuario actual
     try {
       const cal = await apiFetch('/api/calendario/' + currentUser.id);
@@ -5997,7 +6003,7 @@ function seleccionarAgente(uid) {
      ══════════════════════════════════ -->
 <div id="iaPanel" style="position:fixed;right:20px;bottom:20px;width:360px;max-width:calc(100vw - 40px);height:480px;max-height:calc(100vh - 100px);background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(30,80,160,.22);z-index:2000;display:none;flex-direction:column;overflow:hidden;font-family:var(--sans);">
   <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;">
-    <span style="font-weight:700;font-size:13px;color:#1e293b;">🎩 Winston — Asistente IA</span>
+    <span style="font-weight:700;font-size:13px;color:#1e293b;">🎩 Nieves — Asistente IA</span>
     <div style="display:flex;gap:10px;align-items:center;">
       <button id="iaBtnVoz" onclick="toggleVozIA()" title="Activar/Desactivar voz" style="font-size:14px;background:none;border:none;cursor:pointer;padding:0;line-height:1;">🔊</button>
       <button onclick="limpiarChatIA()" style="font-size:11px;color:#3b82f6;background:none;border:none;cursor:pointer;font-family:var(--sans);padding:0;">Limpiar</button>
@@ -6006,7 +6012,7 @@ function seleccionarAgente(uid) {
   </div>
   <div id="iaMensajes" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg);">
     <div style="font-size:12px;color:#64748b;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;line-height:1.5;">
-      Buenas, soy <b>Winston</b> 🎩, su mayordomo digital de inventario. Pregúnteme o pídame lo que guste:<br>
+      Buenas, soy <b>Nieves</b> 🎩, su mayordomo digital de inventario. Pregúnteme o pídame lo que guste:<br>
       • <i>¿Cuáles artículos tienen mayor diferencia?</i><br>
       • <i>Llévame al cronograma</i><br>
       • <i>Abre el recuento de Manchester</i><br>
@@ -6033,7 +6039,7 @@ function seleccionarAgente(uid) {
 // ══════════════════════════════════
 let _iaHistorial = [];   // [{role:'user'|'assistant', content:'...'}]
 let _iaCargando = false;
-let _iaVozActiva = true;   // Winston habla por defecto (botón 🔊 para silenciar)
+let _iaVozActiva = true;   // Nieves habla por defecto (botón 🔊 para silenciar)
 let _iaEscuchando = false;
 
 function toggleIAPanel() {
@@ -6064,7 +6070,7 @@ function hablarNotif(texto) {
   } catch(e) {}
 }
 
-// ── VOZ: Winston habla (Web Speech API — gratis, del navegador) ──
+// ── VOZ: Nieves habla (Web Speech API — gratis, del navegador) ──
 function hablarIA(texto) {
   if (!_iaVozActiva || !('speechSynthesis' in window) || !texto) return;
   try {
@@ -6083,7 +6089,7 @@ function toggleVozIA() {
   _iaVozActiva = !_iaVozActiva;
   document.getElementById('iaBtnVoz').textContent = _iaVozActiva ? '🔊' : '🔇';
   if (!_iaVozActiva) { try { speechSynthesis.cancel(); } catch(e){} }
-  showToast(_iaVozActiva ? '🔊 Winston hablará las respuestas.' : '🔇 Winston en silencio.');
+  showToast(_iaVozActiva ? '🔊 Nieves hablará las respuestas.' : '🔇 Nieves en silencio.');
 }
 
 // ── VOZ: dictado por micrófono (Chrome/Edge) ──
@@ -6240,6 +6246,42 @@ async function ejecutarAccionIA(acc, burbuja) {
         const nombre = _iaBuscarRecuento(p.nombre);
         if (!nombre) return `⚠️ No encontré el recuento "${p.nombre}" entre los activos.`;
         archivarRecuento(nombre);  // pide su propia confirmación
+        return null;
+      }
+
+      case 'preparar_recuento': {
+        if (role !== 'admin') return '⚠️ Solo el administrador puede crear recuentos, señor.';
+        // Abrir el modal solo si no está abierto ya (para no borrar lo cargado)
+        const modalInv = document.getElementById('modalNewInv');
+        if (modalInv.classList.contains('hidden')) openNewInvModal();
+        if (p.nombre)  document.getElementById('mInvNombre').value  = String(p.nombre).trim().toUpperCase();
+        if (p.fecha)   document.getElementById('mInvFecha').value   = String(p.fecha).trim();
+        if (p.almacen) document.getElementById('mInvAlmacen').value = String(p.almacen).trim();
+        const nombresOps = Array.isArray(p.operadores) ? p.operadores : [];
+        const asignados = [];
+        nombresOps.forEach(n => {
+          const q = String(n).toLowerCase().trim();
+          const u = (USERS || []).find(x => x.rol === 'operador' &&
+            (x.nombre.toLowerCase().includes(q) || (x.email || '').toLowerCase() === q));
+          if (u) { toggleOpSel(u.id, true); asignados.push(u.nombre); }
+        });
+        if (asignados.length) confirmAsignar(); // actualiza el resumen "N asignados: ..."
+        return null; // el "texto" de Nieves ya guía el siguiente paso
+      }
+
+      case 'cargar_archivo_recuento': {
+        if (role !== 'admin') return '⚠️ Solo el administrador puede crear recuentos, señor.';
+        const m = document.getElementById('modalNewInv');
+        if (m.classList.contains('hidden')) openNewInvModal();
+        try { document.getElementById('fileUpload').click(); } catch(e) {}
+        return '📂 Elija su archivo .txt en el selector, señor. Si no se abrió, pulse el recuadro punteado del formulario. Avíseme cuando cargue.';
+      }
+
+      case 'confirmar_recuento': {
+        if (role !== 'admin') return '⚠️ Solo el administrador puede crear recuentos, señor.';
+        const nombreForm = document.getElementById('mInvNombre').value.trim();
+        if (!nombreForm) return '⚠️ Falta el nombre del recuento en el formulario, señor. Indíquemelo.';
+        await createInventory(); // valida duplicados, crea, asigna, notifica y navega a la lista
         return null;
       }
 
