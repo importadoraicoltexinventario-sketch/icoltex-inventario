@@ -3113,6 +3113,8 @@ function conectarWS() {
         renderNotifPanel();
         showToast('🔔 ' + msg.datos.mensaje);
         mostrarNotifPush(msg.datos.mensaje);
+        // Mensajes directos: leerlos en voz alta al destinatario
+        if (msg.datos.tipo === 'mensaje_directo') hablarNotif(msg.datos.mensaje);
       } else if (msg.tipo === 'recuento_actualizado') {
         // Recargar datos del recuento actualizado en tiempo real
         actualizarRecuentoEnVivo(msg.nombre);
@@ -5995,7 +5997,7 @@ function seleccionarAgente(uid) {
      ══════════════════════════════════ -->
 <div id="iaPanel" style="position:fixed;right:20px;bottom:20px;width:360px;max-width:calc(100vw - 40px);height:480px;max-height:calc(100vh - 100px);background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(30,80,160,.22);z-index:2000;display:none;flex-direction:column;overflow:hidden;font-family:var(--sans);">
   <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;">
-    <span style="font-weight:700;font-size:13px;color:#1e293b;">🎩 NIEVE — Asistente IA</span>
+    <span style="font-weight:700;font-size:13px;color:#1e293b;">🎩 Winston — Asistente IA</span>
     <div style="display:flex;gap:10px;align-items:center;">
       <button id="iaBtnVoz" onclick="toggleVozIA()" title="Activar/Desactivar voz" style="font-size:14px;background:none;border:none;cursor:pointer;padding:0;line-height:1;">🔊</button>
       <button onclick="limpiarChatIA()" style="font-size:11px;color:#3b82f6;background:none;border:none;cursor:pointer;font-family:var(--sans);padding:0;">Limpiar</button>
@@ -6004,11 +6006,12 @@ function seleccionarAgente(uid) {
   </div>
   <div id="iaMensajes" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg);">
     <div style="font-size:12px;color:#64748b;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;line-height:1.5;">
-      Buenas, soy <b>NIEVE</b> 🎩, su mayordomo digital de inventario. Pregúnteme o pídame lo que guste:<br>
+      Buenas, soy <b>Winston</b> 🎩, su mayordomo digital de inventario. Pregúnteme o pídame lo que guste:<br>
       • <i>¿Cuáles artículos tienen mayor diferencia?</i><br>
       • <i>Llévame al cronograma</i><br>
       • <i>Abre el recuento de Manchester</i><br>
       • <i>Cambia la contraseña de Julio</i><br>
+      • <i>Envía un mensaje a Julio: que termine el nylon</i><br>
       • <i>Cierra la sesión</i><br>
       Puede hablarme con el micrófono 🎤 y silenciarme con 🔊.
     </div>
@@ -6048,6 +6051,19 @@ function limpiarChatIA() {
   cont.querySelectorAll('.ia-msg').forEach(el => el.remove());
 }
 
+// ── VOZ: leer notificaciones entrantes (mensajes directos) en voz alta ──
+function hablarNotif(texto) {
+  if (!('speechSynthesis' in window) || !texto) return;
+  try {
+    const u = new SpeechSynthesisUtterance('Mensaje recibido. ' + texto.replace(/[💬🔔✅⚠️]/g, ' '));
+    u.lang = 'es-ES';
+    const vozEs = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('es'));
+    if (vozEs) u.voice = vozEs;
+    u.rate = 1.02;
+    speechSynthesis.speak(u);
+  } catch(e) {}
+}
+
 // ── VOZ: Winston habla (Web Speech API — gratis, del navegador) ──
 function hablarIA(texto) {
   if (!_iaVozActiva || !('speechSynthesis' in window) || !texto) return;
@@ -6067,7 +6083,7 @@ function toggleVozIA() {
   _iaVozActiva = !_iaVozActiva;
   document.getElementById('iaBtnVoz').textContent = _iaVozActiva ? '🔊' : '🔇';
   if (!_iaVozActiva) { try { speechSynthesis.cancel(); } catch(e){} }
-  showToast(_iaVozActiva ? '🔊 NIEVE hablará las respuestas.' : '🔇 NIEVE en silencio.');
+  showToast(_iaVozActiva ? '🔊 Winston hablará las respuestas.' : '🔇 Winston en silencio.');
 }
 
 // ── VOZ: dictado por micrófono (Chrome/Edge) ──
@@ -6225,6 +6241,21 @@ async function ejecutarAccionIA(acc, burbuja) {
         if (!nombre) return `⚠️ No encontré el recuento "${p.nombre}" entre los activos.`;
         archivarRecuento(nombre);  // pide su propia confirmación
         return null;
+      }
+
+      case 'enviar_mensaje': {
+        const q = (p.usuario || '').toLowerCase().trim();
+        const u = (USERS || []).find(x => x.email.toLowerCase() === q)
+               || (USERS || []).find(x => x.nombre.toLowerCase().includes(q));
+        if (!u) return `⚠️ No encontré al usuario "${p.usuario}".`;
+        if (currentUser && String(u.id) === String(currentUser.id)) return '⚠️ Ese destinatario es usted mismo, señor.';
+        const mensaje = (p.mensaje || '').trim();
+        if (!mensaje) return '⚠️ Indíqueme el mensaje a enviar.';
+        const ok = await appConfirm(`Para: ${u.nombre} (${u.email})\nMensaje: "${mensaje}"`,
+          { titulo: '¿Enviar mensaje?', icono: '💬', okLabel: 'Enviar', okDanger: false });
+        if (!ok) return 'Operación cancelada, como usted ordene.';
+        await apiFetch('/api/notificaciones/enviar', { method: 'POST', body: { paraId: u.id, mensaje } });
+        return `✅ Mensaje enviado a ${u.nombre}. Si está conectado, le llegará al instante y lo escuchará en voz alta.`;
       }
 
       default:
