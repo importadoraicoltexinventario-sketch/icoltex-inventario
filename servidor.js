@@ -207,6 +207,12 @@ app.get('/api/usuarios', auth, soloAdmin, async (req, res) => {
   res.json(docs.map(u => ({ ...u, id: u._id.toString() })));
 });
 
+// ── Directorio básico de usuarios (todos los roles, para mensajes del asistente) ──
+app.get('/api/usuarios/directorio', auth, async (req, res) => {
+  const docs = await db.collection('usuarios').find({}, { projection: { nombre: 1, rol: 1 } }).toArray();
+  res.json(docs.map(u => ({ id: u._id.toString(), nombre: u.nombre, rol: u.rol })));
+});
+
 app.post('/api/usuarios', auth, soloAdmin, async (req, res) => {
   const { nombre, email, password, rol, ops } = req.body;
   if (!password || password.length < 4) return res.status(400).json({ error: 'Contraseña muy corta' });
@@ -415,7 +421,7 @@ app.post('/api/asistente', auth, async (req, res) => {
       return res.status(500).json({ error: 'GEMINI_API_KEY no configurada en el servidor.' });
     }
 
-    const systemPrompt = `Eres WINSTON, el mayordomo digital de "Inventario Pro", la aplicación de
+    const systemPrompt = `Eres NIEVES, el mayordomo digital de "Inventario Pro", la aplicación de
 recuentos de inventario físico vs. SAP de ICOLTEX, una empresa textil colombiana.
 
 PERSONALIDAD:
@@ -445,13 +451,33 @@ ACCIONES DISPONIBLES (usa exactamente estos nombres y parámetros):
 - editar_fisico {"codigo": "código del artículo", "valor": número}
 - exportar_csv {}
 - archivar_recuento {"nombre": "nombre del recuento"}  (contabilizar un recuento)
+- preparar_recuento {"nombre":"...","fecha":"DD/MM/AAAA (opcional)","almacen":"P01 (opcional)","operadores":["nombres de operadores (opcional)"]}
+  (abre y rellena el formulario real "Crear Nuevo Recuento". Puedes ejecutarla varias veces para ir
+  completando campos sin perder lo ya cargado. Si no te han dado el nombre, pídelo antes con tipo "respuesta".)
+- cargar_archivo_recuento {}  (abre el selector para que el usuario elija su archivo .txt con la base de
+  artículos. IMPORTANTE: el navegador NO permite cargar archivos por ruta automáticamente; el usuario
+  siempre debe elegir el archivo manualmente en el selector.)
+- confirmar_recuento {}  (equivale a pulsar el botón "Crear Recuento"; ejecútala SOLO cuando el usuario confirme que todo está listo)
 - enviar_mensaje {"usuario": "nombre o email del destinatario", "mensaje": "el texto a enviar"}
   (envía una notificación en tiempo real a otro usuario de la app; redacta el mensaje de forma
   clara y breve a partir de lo que pidan, por ejemplo "termina el nylon" → "Por favor termina el conteo del nylon")
 
 REGLAS DE ACCIONES:
-- Solo el rol "admin" puede: cambiar contraseñas, archivar recuentos. Si el usuario actual no es admin,
+- NAVEGACIÓN OBLIGATORIA: si el usuario pide "ver", "mostrar", "abrir", "llévame a" o "ir a"
+  cualquier parte de la app (el análisis, el cronograma, la vista previa, los contabilizados, etc.),
+  responde SIEMPRE con tipo "accion" y "ir_a_vista", NUNCA con tipo "respuesta".
+  Ej.: "muéstrame el análisis" → {"tipo":"accion","accion":"ir_a_vista","parametros":{"vista":"analisis"},"texto":"Como usted ordene, aquí tiene el análisis."}
+- Si además de navegar piden datos ("muéstrame el análisis del nylon"), primero navega con "ir_a_vista"
+  y pon el resumen breve de los datos en el campo "texto" de esa misma acción.
+- Solo el rol "admin" puede: cambiar contraseñas, archivar recuentos, crear recuentos. Si el usuario actual no es admin,
   responde con cortesía que no tiene permisos (tipo "respuesta").
+
+FLUJO GUIADO PARA CREAR UN RECUENTO (solo admin, paso a paso):
+1) Si piden crear un recuento sin datos, pregunta el nombre (tipo "respuesta").
+2) Con el nombre, ejecuta preparar_recuento y en "texto" pregunta si desea cargar la base desde archivo de texto.
+3) Si acepta, ejecuta cargar_archivo_recuento y en "texto" pídele elegir el archivo y avisar cuando cargue.
+4) Luego pregunta si asigna operadores; si da nombres, ejecuta preparar_recuento de nuevo solo con "operadores".
+5) Cuando el usuario confirme, ejecuta confirmar_recuento.
 - Si falta un dato para la acción, pídelo antes (tipo "respuesta").
 - La aplicación pedirá confirmación al usuario para acciones sensibles; tú solo la solicitas.
 - Para preguntas de análisis (diferencias, totales, faltantes, porcentajes) usa los datos del contexto
@@ -484,7 +510,7 @@ ${contexto || 'Sin contexto disponible.'}`;
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents: contents,
-          generationConfig: { maxOutputTokens: 1024 }
+          generationConfig: { maxOutputTokens: 2048, responseMimeType: 'application/json' }
         })
       }
     );
@@ -492,6 +518,9 @@ ${contexto || 'Sin contexto disponible.'}`;
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
       console.error('Error API Gemini:', r.status, JSON.stringify(err).slice(0, 300));
+      if (r.status === 503) {
+        return res.status(502).json({ error: 'El servicio de IA está saturado en este momento. Inténtelo de nuevo en unos segundos.' });
+      }
       if (r.status === 429) {
         return res.status(502).json({ error: 'Límite gratuito de Gemini alcanzado por ahora. Intenta más tarde.' });
       }
