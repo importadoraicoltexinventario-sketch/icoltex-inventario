@@ -511,7 +511,7 @@ ${contexto || 'Sin contexto disponible.'}`;
 
     // Modelo con nivel gratuito. Si tu clave no lo acepta, prueba con
     // 'gemini-2.0-flash' o consulta los modelos vigentes en https://ai.google.dev
-    const MODELO = 'gemini-2.5-flash';
+    const MODELO = 'gemini-2.5-flash-lite'; // cuota gratuita más generosa que gemini-2.5-flash
 
     const r = await fetch(
       'https://generativelanguage.googleapis.com/v1beta/models/' + MODELO + ':generateContent',
