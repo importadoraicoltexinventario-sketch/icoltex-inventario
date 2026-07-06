@@ -6249,6 +6249,21 @@ async function ejecutarAccionIA(acc, burbuja) {
         return null;
       }
 
+      case 'activar_gestor': {
+        const q = String(p.nombre || '').toLowerCase().trim();
+        if (!q) return '⚠️ Indíqueme el nombre del gestor, señor.';
+        const u = (USERS || []).find(x => x.rol === 'operador' &&
+          (x.nombre.toLowerCase().includes(q) || (x.email || '').toLowerCase().includes(q)));
+        if (!u) return `⚠️ No encontré ningún gestor llamado "${p.nombre}".`;
+        seleccionarAgente(u.id); // equivale a dar clic en su tarjeta: activa y muestra sus recuentos
+        return `✅ Gestor ${u.nombre} activado. Aquí tiene sus recuentos, señor.`;
+      }
+
+      case 'guardar': {
+        saveToLocalStorage(); // botón "Guardar" del topbar: guarda el recuento activo en el servidor
+        return '💾 Cambios guardados, señor.';
+      }
+
       case 'preparar_recuento': {
         if (role !== 'admin') return '⚠️ Solo el administrador puede crear recuentos, señor.';
         // Abrir el modal solo si no está abierto ya (para no borrar lo cargado)
