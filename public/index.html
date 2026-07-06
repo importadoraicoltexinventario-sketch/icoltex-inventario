@@ -6373,12 +6373,18 @@ async function enviarIA() {
     cargando.textContent = textoFinal;
     hablarIA(textoFinal);
 
-    if (obj && obj.tipo === 'accion' && obj.accion) {
-      const resultado = await ejecutarAccionIA(obj, cargando);
-      if (resultado) {
-        cargando.textContent = textoFinal + '\n' + resultado;
-        hablarIA(resultado);
-        textoFinal += ' ' + resultado;
+    // Soporta una acción ("accion") o una cadena de acciones ("acciones": [...]) ejecutadas en orden
+    if (obj && obj.tipo === 'accion') {
+      const lista = Array.isArray(obj.acciones) && obj.acciones.length
+        ? obj.acciones
+        : (obj.accion ? [{ accion: obj.accion, parametros: obj.parametros }] : []);
+      for (const acc of lista) {
+        const resultado = await ejecutarAccionIA(acc, cargando);
+        if (resultado) {
+          textoFinal += '\n' + resultado;
+          cargando.textContent = textoFinal;
+          hablarIA(resultado);
+        }
       }
     }
     _iaHistorial.push({ role: 'assistant', content: textoFinal });
