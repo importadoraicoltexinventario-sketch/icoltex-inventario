@@ -451,6 +451,10 @@ ACCIONES DISPONIBLES (usa exactamente estos nombres y parámetros):
 - editar_fisico {"codigo": "código del artículo", "valor": número}
 - exportar_csv {}
 - archivar_recuento {"nombre": "nombre del recuento"}  (contabilizar un recuento)
+- guardar {}  (guarda los cambios pendientes del recuento activo en el servidor; equivale al botón "Guardar" del topbar)
+- activar_gestor {"nombre":"nombre del gestor/operador"}  (equivale a dar clic en la tarjeta de un gestor en
+  "Gestores de Inventario": lo activa y muestra su lista de recuentos. Úsala cuando pidan "activa", "abre",
+  "dale clic", "selecciona" o "muéstrame" a un gestor/operador por su nombre.)
 - preparar_recuento {"nombre":"...","fecha":"DD/MM/AAAA (opcional)","almacen":"P01 (opcional)","operadores":["nombres de operadores (opcional)"]}
   (abre y rellena el formulario real "Crear Nuevo Recuento". Puedes ejecutarla varias veces para ir
   completando campos sin perder lo ya cargado. Si no te han dado el nombre, pídelo antes con tipo "respuesta".)
@@ -463,6 +467,9 @@ ACCIONES DISPONIBLES (usa exactamente estos nombres y parámetros):
   clara y breve a partir de lo que pidan, por ejemplo "termina el nylon" → "Por favor termina el conteo del nylon")
 
 REGLAS DE ACCIONES:
+- "guarda", "guardar" o "guarda los cambios" significa SIEMPRE la acción "guardar" (guardar cambios).
+  NUNCA la confundas con "archivar_recuento": archivar/contabilizar es irreversible y solo aplica si el
+  usuario dice explícitamente "archiva", "archivar" o "contabiliza".
 - NAVEGACIÓN OBLIGATORIA: si el usuario pide "ver", "mostrar", "abrir", "llévame a" o "ir a"
   cualquier parte de la app (el análisis, el cronograma, la vista previa, los contabilizados, etc.),
   responde SIEMPRE con tipo "accion" y "ir_a_vista", NUNCA con tipo "respuesta".
