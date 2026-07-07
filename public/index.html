@@ -3606,9 +3606,11 @@ async function doLogin() {
   solicitarPermisoPush();
 }
 
-async function doLogout() {
-  const msg = isDirty ? 'Tienes cambios sin guardar que se perderán.' : '¿Deseas cerrar tu sesión?';
-  if (!await appConfirm(msg, { titulo: '¿Cerrar sesión?', icono: '🚪', okLabel: 'Sí, salir', okDanger: false })) return;
+async function doLogout(sinConfirmar) {
+  if (!sinConfirmar) {
+    const msg = isDirty ? 'Tienes cambios sin guardar que se perderán.' : '¿Deseas cerrar tu sesión?';
+    if (!await appConfirm(msg, { titulo: '¿Cerrar sesión?', icono: '🚪', okLabel: 'Sí, salir', okDanger: false })) return;
+  }
   await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
   if (_ws) { _ws.onclose = null; _ws.close(); _ws = null; }
   document.getElementById("viewApp").classList.add("hidden");
@@ -6198,8 +6200,9 @@ async function ejecutarAccionIA(acc, burbuja) {
       }
 
       case 'cerrar_sesion': {
+        if (isDirty) { try { await saveToLocalStorage(); } catch(e){} }
         try { speechSynthesis.cancel(); } catch(e){}
-        doLogout();  // usa la confirmación propia de la app
+        doLogout(true);  // directo, sin confirmación (orden de Nieves)
         return null;
       }
 
@@ -6308,9 +6311,6 @@ async function ejecutarAccionIA(acc, burbuja) {
         if (currentUser && String(u.id) === String(currentUser.id)) return '⚠️ Ese destinatario es usted mismo, señor.';
         const mensaje = (p.mensaje || '').trim();
         if (!mensaje) return '⚠️ Indíqueme el mensaje a enviar.';
-        const ok = await appConfirm(`Para: ${u.nombre} (${u.email})\nMensaje: "${mensaje}"`,
-          { titulo: '¿Enviar mensaje?', icono: '💬', okLabel: 'Enviar', okDanger: false });
-        if (!ok) return 'Operación cancelada, como usted ordene.';
         await apiFetch('/api/notificaciones/enviar', { method: 'POST', body: { paraId: u.id, mensaje } });
         return `✅ Mensaje enviado a ${u.nombre}. Si está conectado, le llegará al instante y lo escuchará en voz alta.`;
       }
@@ -6340,7 +6340,10 @@ function agregarMsgIA(rol, texto) {
 function _iaParsearRespuesta(raw) {
   if (!raw) return null;
   let t = raw.trim().replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
-  if (!t.startsWith('{')) return null;
+  const ini = t.indexOf('{');
+  const fin = t.lastIndexOf('}');
+  if (ini === -1 || fin === -1 || fin <= ini) return null;
+  t = t.slice(ini, fin + 1);
   try { return JSON.parse(t); } catch(e) { return null; }
 }
 
@@ -6368,7 +6371,10 @@ async function enviarIA() {
     });
     const raw = res.respuesta || '';
     const obj = _iaParsearRespuesta(raw);
-    let textoFinal = obj && obj.texto ? obj.texto : raw || '(sin respuesta)';
+    const pareceJSON = raw.trim().replace(/^```json\s*/i, '').replace(/^```\s*/, '').startsWith('{');
+    let textoFinal = obj && obj.texto
+      ? obj.texto
+      : (obj ? 'Enseguida, señor.' : (pareceJSON ? 'Disculpe, tuve un inconveniente al formular mi respuesta. ¿Podría repetir la orden, por favor?' : (raw || '(sin respuesta)')));
 
     cargando.textContent = textoFinal;
     hablarIA(textoFinal);
