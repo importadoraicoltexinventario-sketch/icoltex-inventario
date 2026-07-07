@@ -3604,6 +3604,7 @@ async function doLogin() {
   updateSaveIndicator();
   conectarWS();
   solicitarPermisoPush();
+  mostrarOrbeNieves();
 }
 
 async function doLogout(sinConfirmar) {
@@ -3611,7 +3612,7 @@ async function doLogout(sinConfirmar) {
     const msg = isDirty ? 'Tienes cambios sin guardar que se perderán.' : '¿Deseas cerrar tu sesión?';
     if (!await appConfirm(msg, { titulo: '¿Cerrar sesión?', icono: '🚪', okLabel: 'Sí, salir', okDanger: false })) return;
   }
-  try { limpiarChatIA(); document.getElementById('iaPanel').style.display = 'none'; } catch(e){}
+  try { limpiarChatIA(); document.getElementById('iaPanel').style.display = 'none'; ocultarOrbeNieves(); } catch(e){}
   await apiFetch('/api/logout', { method: 'POST' }).catch(()=>{});
   if (_ws) { _ws.onclose = null; _ws.close(); _ws = null; }
   document.getElementById("viewApp").classList.add("hidden");
@@ -6004,6 +6005,39 @@ function seleccionarAgente(uid) {
 <!-- ══════════════════════════════════
      ASISTENTE IA (PLN)
      ══════════════════════════════════ -->
+<!-- ══ ORBE FLOTANTE DE NIEVES ══ -->
+<style>
+#nievesOrb { position:fixed; right:28px; bottom:120px; width:76px; height:76px; z-index:2100;
+  cursor:grab; display:none; touch-action:none; user-select:none;
+  filter:drop-shadow(0 0 18px rgba(45,226,190,.45)); }
+#nievesOrb.visible { display:block; }
+#nievesOrb .orb-anillo { position:absolute; inset:0; border-radius:50%; pointer-events:none; }
+#nievesOrb .orb-a1 { border:3px solid transparent; border-top-color:#3be0c8;
+  border-right-color:rgba(59,224,200,.35); animation:orbGiro 3.2s linear infinite; }
+#nievesOrb .orb-a2 { inset:8px; border:2px solid transparent; border-bottom-color:#7ef2b2;
+  border-left-color:rgba(126,242,178,.3); animation:orbGiro 2.1s linear infinite reverse; }
+#nievesOrb .orb-a3 { inset:15px; border:2px dashed rgba(59,224,200,.5); animation:orbGiro 7s linear infinite; }
+#nievesOrb .orb-nucleo { position:absolute; inset:22px; border-radius:50%;
+  background:radial-gradient(circle at 40% 35%, #eaffd0 0%, #a8f0a0 30%, #2de2be 65%, #0b6b5c 100%);
+  box-shadow:0 0 22px rgba(120,240,180,.8), inset 0 0 12px rgba(255,255,255,.5);
+  animation:orbPulso 2.4s ease-in-out infinite; display:flex; align-items:center;
+  justify-content:center; font-size:15px; pointer-events:none; }
+@keyframes orbGiro { to { transform:rotate(360deg); } }
+@keyframes orbPulso { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.07); } }
+#nievesOrb.orb-escuchando { filter:drop-shadow(0 0 22px rgba(255,110,90,.6)); }
+#nievesOrb.orb-escuchando .orb-nucleo {
+  background:radial-gradient(circle at 40% 35%, #ffe3e3 0%, #ff9a9a 35%, #e2452d 75%, #7a1408 100%);
+  box-shadow:0 0 26px rgba(255,110,90,.9), inset 0 0 12px rgba(255,255,255,.5);
+  animation:orbPulso .9s ease-in-out infinite; }
+#nievesOrb.orb-hablando .orb-nucleo { animation:orbPulso .6s ease-in-out infinite; }
+</style>
+<div id="nievesOrb" title="Nieves — clic: abrir/cerrar · arrastrar: mover">
+  <div class="orb-anillo orb-a1"></div>
+  <div class="orb-anillo orb-a2"></div>
+  <div class="orb-anillo orb-a3"></div>
+  <div class="orb-nucleo">🎩</div>
+</div>
+
 <div id="iaPanel" style="position:fixed;right:20px;bottom:20px;width:360px;max-width:calc(100vw - 40px);height:480px;max-height:calc(100vh - 100px);background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(30,80,160,.22);z-index:2000;display:none;flex-direction:column;overflow:hidden;font-family:var(--sans);">
   <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;">
     <span style="font-weight:700;font-size:13px;color:#1e293b;">🎩 Nieves — Asistente IA</span>
@@ -6053,6 +6087,71 @@ function toggleIAPanel() {
   else document.getElementById('iaInput').focus();
 }
 
+// ── ORBE FLOTANTE DE NIEVES ──
+function mostrarOrbeNieves() {
+  const orb = document.getElementById('nievesOrb');
+  orb.classList.add('visible');
+  _orbRestaurarPos();
+  // Activar a Nieves al iniciar sesión: abre el panel e inicia el dictado.
+  // (La primera vez el navegador pedirá permiso de micrófono; es obligatorio.)
+  setTimeout(() => {
+    try {
+      if (document.getElementById('iaPanel').style.display !== 'flex') toggleIAPanel();
+      iniciarDictado();
+    } catch(e){}
+  }, 800);
+}
+
+function ocultarOrbeNieves() {
+  const orb = document.getElementById('nievesOrb');
+  orb.classList.remove('visible', 'orb-escuchando', 'orb-hablando');
+}
+
+function _orbRestaurarPos() {
+  const orb = document.getElementById('nievesOrb');
+  try {
+    const p = JSON.parse(localStorage.getItem('nievesOrbPos') || 'null');
+    if (p && typeof p.x === 'number' && typeof p.y === 'number') {
+      orb.style.left = Math.min(Math.max(0, p.x), window.innerWidth - orb.offsetWidth) + 'px';
+      orb.style.top = Math.min(Math.max(0, p.y), window.innerHeight - orb.offsetHeight) + 'px';
+      orb.style.right = 'auto'; orb.style.bottom = 'auto';
+    }
+  } catch(e){}
+}
+
+(function(){
+  const orb = document.getElementById('nievesOrb');
+  if (!orb) return;
+  let activo = false, movido = false, sx = 0, sy = 0, offX = 0, offY = 0;
+  orb.addEventListener('pointerdown', e => {
+    activo = true; movido = false; sx = e.clientX; sy = e.clientY;
+    const r = orb.getBoundingClientRect();
+    offX = e.clientX - r.left; offY = e.clientY - r.top;
+    try { orb.setPointerCapture(e.pointerId); } catch(e2){}
+    e.preventDefault();
+  });
+  orb.addEventListener('pointermove', e => {
+    if (!activo) return;
+    if (Math.abs(e.clientX - sx) > 6 || Math.abs(e.clientY - sy) > 6) movido = true;
+    if (!movido) return;
+    const x = Math.min(Math.max(0, e.clientX - offX), window.innerWidth - orb.offsetWidth);
+    const y = Math.min(Math.max(0, e.clientY - offY), window.innerHeight - orb.offsetHeight);
+    orb.style.left = x + 'px'; orb.style.top = y + 'px';
+    orb.style.right = 'auto'; orb.style.bottom = 'auto';
+  });
+  orb.addEventListener('pointerup', () => {
+    if (!activo) return;
+    activo = false;
+    if (movido) {
+      const r = orb.getBoundingClientRect();
+      try { localStorage.setItem('nievesOrbPos', JSON.stringify({ x: r.left, y: r.top })); } catch(e2){}
+    } else {
+      toggleIAPanel();
+    }
+  });
+  window.addEventListener('resize', _orbRestaurarPos);
+})();
+
 function limpiarChatIA() {
   _iaHistorial = [];
   try { speechSynthesis.cancel(); } catch(e){}
@@ -6084,6 +6183,8 @@ function hablarIA(texto) {
     const vozEs = voces.find(v => v.lang && v.lang.startsWith('es'));
     if (vozEs) u.voice = vozEs;
     u.rate = 1.02;
+    u.onstart = () => { try { document.getElementById('nievesOrb').classList.add('orb-hablando'); } catch(e){} };
+    u.onend = () => { try { document.getElementById('nievesOrb').classList.remove('orb-hablando'); } catch(e){} };
     speechSynthesis.speak(u);
   } catch(e) {}
 }
@@ -6107,6 +6208,7 @@ function iniciarDictado() {
   const btn = document.getElementById('iaBtnMic');
   _iaEscuchando = true;
   btn.textContent = '🔴';
+  try { document.getElementById('nievesOrb').classList.add('orb-escuchando'); } catch(e){}
   rec.onresult = (evt) => {
     const texto = evt.results[0][0].transcript;
     document.getElementById('iaInput').value = texto;
@@ -6116,8 +6218,8 @@ function iniciarDictado() {
     if (evt.error === 'not-allowed') showToast('⚠️ Permite el acceso al micrófono en el navegador.');
     else if (evt.error !== 'no-speech') showToast('⚠️ Error de dictado: ' + evt.error);
   };
-  rec.onend = () => { _iaEscuchando = false; btn.textContent = '🎤'; };
-  try { rec.start(); } catch(e) { _iaEscuchando = false; btn.textContent = '🎤'; }
+  rec.onend = () => { _iaEscuchando = false; btn.textContent = '🎤'; try { document.getElementById('nievesOrb').classList.remove('orb-escuchando'); } catch(e){} };
+  try { rec.start(); } catch(e) { _iaEscuchando = false; btn.textContent = '🎤'; try { document.getElementById('nievesOrb').classList.remove('orb-escuchando'); } catch(e2){} }
 }
 
 // ── CONTEXTO: toda la app (inventario, contabilizados, usuarios, vista) ──
