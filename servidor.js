@@ -513,21 +513,29 @@ ${contexto || 'Sin contexto disponible.'}`;
     // 'gemini-2.0-flash' o consulta los modelos vigentes en https://ai.google.dev
     const MODELO = 'gemini-2.5-flash-lite'; // cuota gratuita más generosa que gemini-2.5-flash
 
-    const r = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/' + MODELO + ':generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': process.env.GEMINI_API_KEY
-        },
-        body: JSON.stringify({
-          system_instruction: { parts: [{ text: systemPrompt }] },
-          contents: contents,
-          generationConfig: { maxOutputTokens: 2048, responseMimeType: 'application/json' }
-        })
-      }
-    );
+    // Reintento automático ante saturación (503) o cuota (429): hasta 3 intentos
+    const ESPERAS_MS = [0, 1500, 3000];
+    let r = null;
+    for (let intento = 0; intento < ESPERAS_MS.length; intento++) {
+      if (ESPERAS_MS[intento] > 0) await new Promise(ok => setTimeout(ok, ESPERAS_MS[intento]));
+      r = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/' + MODELO + ':generateContent',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': process.env.GEMINI_API_KEY
+          },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: systemPrompt }] },
+            contents: contents,
+            generationConfig: { maxOutputTokens: 2048, responseMimeType: 'application/json' }
+          })
+        }
+      );
+      if (r.ok || (r.status !== 503 && r.status !== 429)) break;
+      console.warn('Gemini ' + r.status + ' — reintentando (' + (intento + 1) + ' de ' + (ESPERAS_MS.length - 1) + ')...');
+    }
 
     if (!r.ok) {
       const err = await r.json().catch(() => ({}));
