@@ -6007,21 +6007,24 @@ function seleccionarAgente(uid) {
      ══════════════════════════════════ -->
 <!-- ══ ORBE FLOTANTE DE NIEVES ══ -->
 <style>
-#nievesOrb { position:fixed; right:28px; bottom:120px; width:76px; height:76px; z-index:2100;
+#nievesOrb { position:fixed; right:28px; bottom:120px; width:88px; height:88px; z-index:2100;
   cursor:grab; display:none; touch-action:none; user-select:none;
   filter:drop-shadow(0 0 18px rgba(45,226,190,.45)); }
 #nievesOrb.visible { display:block; }
 #nievesOrb .orb-anillo { position:absolute; inset:0; border-radius:50%; pointer-events:none; }
 #nievesOrb .orb-a1 { border:3px solid transparent; border-top-color:#3be0c8;
   border-right-color:rgba(59,224,200,.35); animation:orbGiro 3.2s linear infinite; }
-#nievesOrb .orb-a2 { inset:8px; border:2px solid transparent; border-bottom-color:#7ef2b2;
+#nievesOrb .orb-a2 { inset:9px; border:2px solid transparent; border-bottom-color:#7ef2b2;
   border-left-color:rgba(126,242,178,.3); animation:orbGiro 2.1s linear infinite reverse; }
-#nievesOrb .orb-a3 { inset:15px; border:2px dashed rgba(59,224,200,.5); animation:orbGiro 7s linear infinite; }
-#nievesOrb .orb-nucleo { position:absolute; inset:22px; border-radius:50%;
+#nievesOrb .orb-a3 { inset:17px; border:2px dashed rgba(59,224,200,.5); animation:orbGiro 7s linear infinite; }
+#nievesOrb .orb-nucleo { position:absolute; inset:25px; border-radius:50%;
   background:radial-gradient(circle at 40% 35%, #eaffd0 0%, #a8f0a0 30%, #2de2be 65%, #0b6b5c 100%);
   box-shadow:0 0 22px rgba(120,240,180,.8), inset 0 0 12px rgba(255,255,255,.5);
   animation:orbPulso 2.4s ease-in-out infinite; display:flex; align-items:center;
-  justify-content:center; font-size:15px; pointer-events:none; }
+  justify-content:center; pointer-events:none;
+  font-weight:800; font-size:20px; color:#04332b; font-family:var(--sans);
+  text-shadow:0 0 6px rgba(255,255,255,.7); letter-spacing:1px; }
+#iaInput::placeholder { color:#8fb8ad; }
 @keyframes orbGiro { to { transform:rotate(360deg); } }
 @keyframes orbPulso { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.07); } }
 #nievesOrb.orb-escuchando { filter:drop-shadow(0 0 22px rgba(255,110,90,.6)); }
@@ -6035,36 +6038,40 @@ function seleccionarAgente(uid) {
   <div class="orb-anillo orb-a1"></div>
   <div class="orb-anillo orb-a2"></div>
   <div class="orb-anillo orb-a3"></div>
-  <div class="orb-nucleo">🎩</div>
+  <div class="orb-nucleo">N</div>
 </div>
 
-<div id="iaPanel" style="position:fixed;right:20px;bottom:20px;width:360px;max-width:calc(100vw - 40px);height:480px;max-height:calc(100vh - 100px);background:#fff;border:1.5px solid #e2e8f0;border-radius:14px;box-shadow:0 12px 32px rgba(30,80,160,.22);z-index:2000;display:none;flex-direction:column;overflow:hidden;font-family:var(--sans);">
-  <div style="padding:12px 16px;border-bottom:1.5px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;background:#f8fafc;">
-    <span style="font-weight:700;font-size:13px;color:#1e293b;">🎩 Nieves — Asistente IA</span>
-    <div style="display:flex;gap:10px;align-items:center;">
-      <button id="iaBtnVoz" onclick="toggleVozIA()" title="Activar/Desactivar voz" style="font-size:14px;background:none;border:none;cursor:pointer;padding:0;line-height:1;">🔊</button>
-      <button onclick="limpiarChatIA()" style="font-size:11px;color:#3b82f6;background:none;border:none;cursor:pointer;font-family:var(--sans);padding:0;">Limpiar</button>
-      <button onclick="toggleIAPanel()" style="font-size:15px;color:#94a3b8;background:none;border:none;cursor:pointer;padding:0;line-height:1;">✕</button>
+<div id="iaPanel" style="position:fixed;right:20px;bottom:20px;width:370px;max-width:calc(100vw - 40px);height:500px;max-height:calc(100vh - 100px);background:rgba(7,22,26,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(59,224,200,.35);border-radius:22px;box-shadow:0 0 28px rgba(45,226,190,.22),0 18px 44px rgba(0,0,0,.5);z-index:2000;display:none;flex-direction:column;overflow:hidden;font-family:var(--sans);">
+  <div style="padding:12px 16px;border-bottom:1px solid rgba(59,224,200,.22);display:flex;align-items:center;justify-content:space-between;">
+    <span style="display:flex;align-items:center;gap:9px;">
+      <span style="width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 40% 35%, #eaffd0 0%, #a8f0a0 30%, #2de2be 65%, #0b6b5c 100%);box-shadow:0 0 10px rgba(120,240,180,.8);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#04332b;">N</span>
+      <span style="font-weight:700;font-size:13px;letter-spacing:3px;color:#7ef2d8;">NIEVES</span>
+    </span>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button id="iaBtnVoz" onclick="toggleVozIA()" title="Activar/Desactivar voz" style="width:28px;height:28px;border-radius:50%;font-size:13px;background:rgba(59,224,200,.12);border:1px solid rgba(59,224,200,.3);color:#7ef2d8;cursor:pointer;padding:0;line-height:1;">🔊</button>
+      <button id="iaBtnBandeja" onclick="toggleBandejaIA()" title="Mostrar/Ocultar bandeja de texto" style="width:28px;height:28px;border-radius:50%;font-size:13px;background:rgba(59,224,200,.12);border:1px solid rgba(59,224,200,.3);color:#7ef2d8;cursor:pointer;padding:0;line-height:1;">⌨</button>
+      <button onclick="limpiarChatIA()" title="Limpiar conversación" style="width:28px;height:28px;border-radius:50%;font-size:13px;background:rgba(59,224,200,.12);border:1px solid rgba(59,224,200,.3);color:#7ef2d8;cursor:pointer;padding:0;line-height:1;">🗑</button>
+      <button onclick="toggleIAPanel()" title="Esconder panel" style="width:28px;height:28px;border-radius:50%;font-size:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:#9fb8b2;cursor:pointer;padding:0;line-height:1;">✕</button>
     </div>
   </div>
-  <div id="iaMensajes" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--bg);">
-    <div style="font-size:12px;color:#64748b;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;line-height:1.5;">
-      Buenas, soy <b>Nieves</b> 🎩, el sistema de inteligencia artificial de Inventario Pro. Pregúnteme o pídame lo que guste:<br>
+  <div id="iaMensajes" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px;background:transparent;">
+    <div style="font-size:12px;color:#334155;background:rgba(255,255,255,.94);border:1px solid rgba(59,224,200,.3);border-radius:12px;padding:10px 12px;line-height:1.5;">
+      Buenas, soy <b>Nieves</b>, el sistema de inteligencia artificial de Inventario Pro. Pregúnteme o pídame lo que guste:<br>
       • <i>¿Cuáles artículos tienen mayor diferencia?</i><br>
       • <i>Llévame al cronograma</i><br>
       • <i>Abre el recuento de Manchester</i><br>
       • <i>Cambia la contraseña de Julio</i><br>
       • <i>Envía un mensaje a Julio: que termine el nylon</i><br>
       • <i>Cierra la sesión</i><br>
-      Puede hablarme con el micrófono 🎤 y silenciarme con 🔊.
+      Puede hablarme con el micrófono 🎤, silenciarme con 🔊 y ocultar la bandeja de texto con ⌨.
     </div>
   </div>
-  <div style="padding:10px;border-top:1.5px solid #e2e8f0;background:#fff;display:flex;gap:8px;align-items:flex-end;">
+  <div id="iaBandeja" style="padding:10px;border-top:1px solid rgba(59,224,200,.22);display:flex;gap:8px;align-items:flex-end;">
     <textarea id="iaInput" rows="1" placeholder="Escribe tu pregunta…"
-      style="flex:1;resize:none;border:1.5px solid var(--border);border-radius:10px;padding:8px 10px;font-size:13px;font-family:var(--sans);outline:none;max-height:90px;"
+      style="flex:1;resize:none;border:1px solid rgba(59,224,200,.35);background:rgba(255,255,255,.08);color:#eafff8;border-radius:12px;padding:9px 12px;font-size:13px;font-family:var(--sans);outline:none;max-height:90px;"
       onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarIA();}"></textarea>
-    <button id="iaBtnMic" class="btn" onclick="iniciarDictado()" title="Hablar (dictado por voz)" style="padding:8px 12px;font-size:13px;">🎤</button>
-    <button id="iaBtnEnviar" class="btn" onclick="enviarIA()" style="padding:8px 14px;font-size:13px;">➤</button>
+    <button id="iaBtnMic" onclick="iniciarDictado()" title="Hablar (dictado por voz)" style="width:38px;height:38px;border-radius:50%;font-size:15px;background:rgba(59,224,200,.15);border:1px solid rgba(59,224,200,.4);color:#7ef2d8;cursor:pointer;flex:none;">🎤</button>
+    <button id="iaBtnEnviar" onclick="enviarIA()" title="Enviar" style="width:38px;height:38px;border-radius:50%;font-size:15px;background:linear-gradient(135deg,#2de2be,#0ea5a0);border:none;color:#04332b;cursor:pointer;box-shadow:0 0 12px rgba(45,226,190,.5);flex:none;">➤</button>
   </div>
 </div>
 
@@ -6088,6 +6095,16 @@ function toggleIAPanel() {
 }
 
 // ── ORBE FLOTANTE DE NIEVES ──
+function toggleBandejaIA() {
+  const b = document.getElementById('iaBandeja');
+  const btn = document.getElementById('iaBtnBandeja');
+  const oculta = b.style.display === 'none';
+  b.style.display = oculta ? 'flex' : 'none';
+  btn.style.opacity = oculta ? '1' : '.5';
+  btn.title = oculta ? 'Ocultar bandeja de texto' : 'Mostrar bandeja de texto';
+  if (oculta) { try { document.getElementById('iaInput').focus(); } catch(e){} }
+}
+
 function mostrarOrbeNieves() {
   const orb = document.getElementById('nievesOrb');
   orb.classList.add('visible');
