@@ -6033,6 +6033,11 @@ function seleccionarAgente(uid) {
   box-shadow:0 0 26px rgba(255,110,90,.9), inset 0 0 12px rgba(255,255,255,.5);
   animation:orbPulso .9s ease-in-out infinite; }
 #nievesOrb.orb-hablando .orb-nucleo { animation:orbPulso .6s ease-in-out infinite; }
+#nievesCaption { position:fixed; max-width:264px; background:rgba(7,22,26,.92);
+  border:1px solid rgba(59,224,200,.4); color:#d9fff4; font-family:var(--sans);
+  font-size:12.5px; line-height:1.45; padding:9px 12px; border-radius:14px;
+  box-shadow:0 0 18px rgba(45,226,190,.25); z-index:2099; display:none;
+  white-space:pre-wrap; word-break:break-word; }
 </style>
 <div id="nievesOrb" title="Nieves — clic: abrir/cerrar · arrastrar: mover">
   <div class="orb-anillo orb-a1"></div>
@@ -6040,6 +6045,7 @@ function seleccionarAgente(uid) {
   <div class="orb-anillo orb-a3"></div>
   <div class="orb-nucleo">N</div>
 </div>
+<div id="nievesCaption"></div>
 
 <div id="iaPanel" style="position:fixed;right:20px;bottom:20px;width:370px;max-width:calc(100vw - 40px);height:500px;max-height:calc(100vh - 100px);background:rgba(7,22,26,.88);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(59,224,200,.35);border-radius:22px;box-shadow:0 0 28px rgba(45,226,190,.22),0 18px 44px rgba(0,0,0,.5);z-index:2000;display:none;flex-direction:column;overflow:hidden;font-family:var(--sans);">
   <div style="padding:12px 16px;border-bottom:1px solid rgba(59,224,200,.22);display:flex;align-items:center;justify-content:space-between;">
@@ -6109,19 +6115,32 @@ function mostrarOrbeNieves() {
   const orb = document.getElementById('nievesOrb');
   orb.classList.add('visible');
   _orbRestaurarPos();
-  // Activar a Nieves al iniciar sesión: abre el panel e inicia el dictado.
+  // Modo solo-voz: NO se abre el panel; el orbe escucha directamente.
   // (La primera vez el navegador pedirá permiso de micrófono; es obligatorio.)
-  setTimeout(() => {
-    try {
-      if (document.getElementById('iaPanel').style.display !== 'flex') toggleIAPanel();
-      iniciarDictado();
-    } catch(e){}
-  }, 800);
+  showToast('🎤 Nieves activo. Clic en el orbe: hablar · Doble clic: abrir el chat.');
+  setTimeout(() => { try { iniciarDictado(); } catch(e){} }, 800);
+}
+
+let _capTimer = null;
+function mostrarSubtituloNieves(texto) {
+  const cap = document.getElementById('nievesCaption');
+  const orb = document.getElementById('nievesOrb');
+  if (!cap || !orb || !orb.classList.contains('visible')) return;
+  if (document.getElementById('iaPanel').style.display === 'flex') return; // con el chat abierto no hace falta
+  cap.textContent = texto;
+  cap.style.display = 'block';
+  const r = orb.getBoundingClientRect();
+  cap.style.top = Math.max(8, r.top - 8) + 'px';
+  if (r.left > 292) cap.style.left = (r.left - 280) + 'px';
+  else cap.style.left = Math.min(window.innerWidth - 280, r.right + 10) + 'px';
+  clearTimeout(_capTimer);
+  _capTimer = setTimeout(() => { cap.style.display = 'none'; }, 8000);
 }
 
 function ocultarOrbeNieves() {
   const orb = document.getElementById('nievesOrb');
   orb.classList.remove('visible', 'orb-escuchando', 'orb-hablando');
+  try { document.getElementById('nievesCaption').style.display = 'none'; } catch(e){}
 }
 
 function _orbRestaurarPos() {
@@ -6156,14 +6175,20 @@ function _orbRestaurarPos() {
     orb.style.left = x + 'px'; orb.style.top = y + 'px';
     orb.style.right = 'auto'; orb.style.bottom = 'auto';
   });
+  let _clicTimer = null;
   orb.addEventListener('pointerup', () => {
     if (!activo) return;
     activo = false;
     if (movido) {
       const r = orb.getBoundingClientRect();
       try { localStorage.setItem('nievesOrbPos', JSON.stringify({ x: r.left, y: r.top })); } catch(e2){}
-    } else {
+    } else if (_clicTimer) {
+      // Doble clic: abrir/cerrar el panel de chat
+      clearTimeout(_clicTimer); _clicTimer = null;
       toggleIAPanel();
+    } else {
+      // Clic sencillo (espera breve por si llega el segundo): escuchar por voz
+      _clicTimer = setTimeout(() => { _clicTimer = null; try { iniciarDictado(); } catch(e2){} }, 300);
     }
   });
   window.addEventListener('resize', _orbRestaurarPos);
@@ -6201,7 +6226,13 @@ function hablarIA(texto) {
     if (vozEs) u.voice = vozEs;
     u.rate = 1.02;
     u.onstart = () => { try { document.getElementById('nievesOrb').classList.add('orb-hablando'); } catch(e){} };
-    u.onend = () => { try { document.getElementById('nievesOrb').classList.remove('orb-hablando'); } catch(e){} };
+    u.onend = () => {
+      try { document.getElementById('nievesOrb').classList.remove('orb-hablando'); } catch(e){}
+      // Modo solo-voz (panel cerrado): tras responder, vuelve a escuchar para la siguiente orden
+      if (currentUser && document.getElementById('iaPanel').style.display !== 'flex' && !_iaCargando) {
+        setTimeout(() => { try { iniciarDictado(); } catch(e){} }, 500);
+      }
+    };
     speechSynthesis.speak(u);
   } catch(e) {}
 }
@@ -6499,6 +6530,7 @@ async function enviarIA() {
 
     cargando.textContent = textoFinal;
     hablarIA(textoFinal);
+    mostrarSubtituloNieves(textoFinal);
 
     // Soporta una acción ("accion") o una cadena de acciones ("acciones": [...]) ejecutadas en orden
     if (obj && obj.tipo === 'accion') {
@@ -6511,6 +6543,7 @@ async function enviarIA() {
           textoFinal += '\n' + resultado;
           cargando.textContent = textoFinal;
           hablarIA(resultado);
+          mostrarSubtituloNieves(textoFinal);
         }
       }
     }
@@ -6518,6 +6551,7 @@ async function enviarIA() {
   } catch (e) {
     cargando.textContent = '⚠️ Error del asistente: ' + e.message;
     cargando.style.color = '#b83228';
+    mostrarSubtituloNieves('⚠️ Error del asistente: ' + e.message);
   } finally {
     _iaCargando = false;
     document.getElementById('iaBtnEnviar').disabled = false;
