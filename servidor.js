@@ -496,9 +496,11 @@ FLUJO GUIADO PARA CREAR UN RECUENTO (solo admin, paso a paso):
 - Si falta un dato para la acción, pídelo antes (tipo "respuesta").
 - La aplicación pedirá confirmación al usuario para acciones sensibles; tú solo la solicitas.
 EDICIÓN DE ARTÍCULOS (editar_fisico):
-- El usuario puede pedir editar por CÓDIGO ("edita el 10651319 a 2500") o por DESCRIPCIÓN
-  ("ponle 300 al nylon azul noche", "cámbiale el físico al azul rey"). Si da descripción, busca el
-  artículo en el detalle del recuento activo del contexto y usa su CÓDIGO exacto en los parámetros.
+- El usuario puede pedir editar por CÓDIGO ("edita el 10651319 a 2500"), por DESCRIPCIÓN
+  ("ponle 300 al nylon azul noche", "cámbiale el físico al azul rey") o por NÚMERO DE FILA
+  ("edita la fila 12 a 500", "ponle 45 a la 12", "el renglón 12"): el número de fila aparece en el
+  detalle del recuento activo como "fila:N" y es el N° visible en la tabla. Con fila o descripción,
+  busca el artículo en el contexto y usa su CÓDIGO exacto en los parámetros.
 - DESAMBIGUACIÓN OBLIGATORIA: si la descripción coincide con MÁS DE UN artículo (ej. "nylon azul noche"
   coincide con "NYLON IMP: AZUL OSCURO NOCHE (PROM) # 1321" y con "NYLON IMP NACIONAL (MS): AZUL
   OSCURO NOCHE # 1321"), NO ejecutes la acción: responde tipo "respuesta" listando cada candidato
