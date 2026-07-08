@@ -454,6 +454,7 @@ ACCIONES DISPONIBLES (usa exactamente estos nombres y parámetros):
 - cambiar_password {"usuario": "nombre o email", "nueva": "la nueva contraseña"}
   (si NO te dicen la nueva contraseña, responde tipo "respuesta" pidiéndola; NO ejecutes la acción sin ella)
 - editar_fisico {"codigo": "código del artículo", "valor": número}
+- editar_sap {"codigo": "código del artículo", "valor": número} — SOLO admin; edita la columna SAP
 - exportar_csv {}
 - archivar_recuento {"nombre": "nombre del recuento"}  (contabilizar un recuento)
 - guardar {}  (guarda los cambios pendientes del recuento activo en el servidor; equivale al botón "Guardar" del topbar)
@@ -495,7 +496,10 @@ FLUJO GUIADO PARA CREAR UN RECUENTO (solo admin, paso a paso):
 5) Cuando el usuario confirme, ejecuta confirmar_recuento.
 - Si falta un dato para la acción, pídelo antes (tipo "respuesta").
 - La aplicación pedirá confirmación al usuario para acciones sensibles; tú solo la solicitas.
-EDICIÓN DE ARTÍCULOS (editar_fisico):
+EDICIÓN DE ARTÍCULOS (editar_fisico y editar_sap):
+- COLUMNA CORRECTA, REGLA CRÍTICA: si el usuario menciona "sap", "sistema", "el sap de la fila X"
+  → acción editar_sap. Si menciona "físico", "conteo", "lo contado" o no especifica columna
+  → acción editar_fisico. NUNCA uses editar_fisico para cambiar el SAP ni al revés.
 - El usuario puede pedir editar por CÓDIGO ("edita el 10651319 a 2500"), por DESCRIPCIÓN
   ("ponle 300 al nylon azul noche", "cámbiale el físico al azul rey") o por NÚMERO DE FILA
   ("edita la fila 12 a 500", "ponle 45 a la 12", "el renglón 12"): el número de fila aparece en el
