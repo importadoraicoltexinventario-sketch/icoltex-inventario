@@ -2466,8 +2466,9 @@ td:focus { outline: none !important; box-shadow: none !important; }
         <table class="matrix-table" id="matrizTable" oncontextmenu="showTableCtxMenu(event)">
           <thead>
             <tr>
-              <th style="width:12%">Código</th>
-              <th style="width:35%">Descripción</th>
+              <th style="width:4%;text-align:center">N°</th>
+              <th style="width:11%">Código</th>
+              <th style="width:32%">Descripción</th>
               <th style="width:8%;text-align:center">Almacén</th>
               <th style="width:11%;text-align:right">Físico</th>
               <th style="width:11%;text-align:right">SAP</th>
@@ -2478,17 +2479,17 @@ td:focus { outline: none !important; box-shadow: none !important; }
           <tbody id="matrizBody"></tbody>
           <tfoot>
             <tr class="total-row">
-              <td colspan="6" class="tot-label">TOTAL DE FÍSICO:</td>
+              <td colspan="7" class="tot-label">TOTAL DE FÍSICO:</td>
               <td id="totFisico" class="tot-value">—</td>
               <td></td>
             </tr>
             <tr class="total-row">
-              <td colspan="6" class="tot-label">TOTAL DE SAP:</td>
+              <td colspan="7" class="tot-label">TOTAL DE SAP:</td>
               <td id="totSap" class="tot-value">—</td>
               <td></td>
             </tr>
             <tr class="total-row">
-              <td colspan="6" class="tot-label">DIFERENCIA:</td>
+              <td colspan="7" class="tot-label">DIFERENCIA:</td>
               <td id="totDif" class="tot-value tot-dif">—</td>
               <td></td>
             </tr>
@@ -3789,6 +3790,7 @@ function renderMatrix() {
     if (isAdmin) {
       tbody.insertAdjacentHTML("beforeend", `
         <tr class="selectable ${selClass}" onclick="selectRowHighlight(${i})">
+          <td class="text-c" style="font-family:var(--mono);font-size:11px;color:#64748b;">${i + 1}</td>
           <td><input class="input-cell" value="${esc(item.codigo)}" onchange="updateCell(${i},'codigo',this.value)" onclick="event.stopPropagation()"></td>
           <td><input class="input-cell" style="width:100%" value="${esc(item.descripcion)}" onchange="updateCell(${i},'descripcion',this.value.toUpperCase())" onclick="event.stopPropagation()"></td>
           <td class="text-c"><input class="input-cell" style="width:52px;text-align:center" value="${esc(item.almacen)}" onchange="updateCell(${i},'almacen',this.value)" onclick="event.stopPropagation()"></td>
@@ -3801,6 +3803,7 @@ function renderMatrix() {
     } else {
       tbody.insertAdjacentHTML("beforeend", `
         <tr class="selectable ${selClass}" onclick="selectRowHighlight(${i})">
+          <td class="text-c" style="font-family:var(--mono);font-size:11px;color:#64748b;">${i + 1}</td>
           <td style="font-family:var(--mono);font-size:11px;">${esc(item.codigo)}</td>
           <td style="font-size:12px;">${esc(item.descripcion)}</td>
           <td class="text-c" style="font-size:12px;">${esc(item.almacen)}</td>
@@ -5133,7 +5136,7 @@ async function confirmPaste() {
 // ══════════════════════════════════
 //  PEGAR COLUMNA DESDE EXCEL (Ctrl+V en tabla)
 // ══════════════════════════════════
-const COL_FIELD_MAP = {0:"codigo", 1:"descripcion", 2:"almacen", 3:"fisico", 4:"sap"};
+const COL_FIELD_MAP = {1:"codigo", 2:"descripcion", 3:"almacen", 4:"fisico", 5:"sap"};
 
 document.addEventListener("DOMContentLoaded", () => {
   const table = document.getElementById("matrizTable");
@@ -6304,14 +6307,14 @@ RESUMEN: total recuentos ${total} | contabilizados ${archivados.length} (${pct}%
     const rec = DB[activeInv];
     const arts = rec.articulos || [];
     const MAX_FILAS = 400;
-    let lineas = arts.slice(0, MAX_FILAS).map(a => {
+    let lineas = arts.slice(0, MAX_FILAS).map((a, idx) => {
       const dif = (Number(a.fisico) || 0) - (Number(a.sap) || 0);
-      return `${a.codigo} | ${a.descripcion} | almacén:${a.almacen} | físico:${a.fisico} | sap:${a.sap} | dif:${dif.toFixed(2)}`;
+      return `fila:${idx + 1} | ${a.codigo} | ${a.descripcion} | almacén:${a.almacen} | físico:${a.fisico} | sap:${a.sap} | dif:${dif.toFixed(2)}`;
     }).join('\n');
     if (arts.length > MAX_FILAS) lineas += `\n… (${arts.length - MAX_FILAS} artículos más no incluidos)`;
     ctx += `=== DETALLE DEL RECUENTO ACTIVO: "${activeInv}" ===
 FECHA RECUENTO: ${rec.fecha||'—'} | FECHA CONTEO: ${rec.fechaConteo||'—'} | ALMACÉN: ${rec.almacen||'—'}
-COLUMNAS: código | descripción | almacén | físico | sap | diferencia
+COLUMNAS: fila (N° visible en la tabla) | código | descripción | almacén | físico | sap | diferencia
 ${lineas}`;
   } else {
     ctx += `DETALLE: No hay recuento activo seleccionado en Vista Previa.`;
