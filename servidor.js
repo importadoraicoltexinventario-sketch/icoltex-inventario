@@ -543,13 +543,19 @@ ${contexto || 'Sin contexto disponible.'}`;
     // 'gemini-2.0-flash' o consulta los modelos vigentes en https://ai.google.dev
     const MODELO = 'gemini-2.5-flash-lite'; // cuota gratuita más generosa que gemini-2.5-flash
 
-    // Reintento automático ante saturación (503) o cuota (429): hasta 3 intentos
-    const ESPERAS_MS = [0, 1500, 3000];
+    // Reintentos con modelo de respaldo ante saturación (503) o cuota (429):
+    // 2 intentos con el modelo principal y 2 con el de respaldo (cuota y capacidad separadas).
+    const INTENTOS = [
+      { modelo: MODELO, espera: 0 },
+      { modelo: MODELO, espera: 1200 },
+      { modelo: 'gemini-2.0-flash-lite', espera: 400 },
+      { modelo: 'gemini-2.0-flash-lite', espera: 1500 }
+    ];
     let r = null;
-    for (let intento = 0; intento < ESPERAS_MS.length; intento++) {
-      if (ESPERAS_MS[intento] > 0) await new Promise(ok => setTimeout(ok, ESPERAS_MS[intento]));
+    for (const paso of INTENTOS) {
+      if (paso.espera > 0) await new Promise(ok => setTimeout(ok, paso.espera));
       r = await fetch(
-        'https://generativelanguage.googleapis.com/v1beta/models/' + MODELO + ':generateContent',
+        'https://generativelanguage.googleapis.com/v1beta/models/' + paso.modelo + ':generateContent',
         {
           method: 'POST',
           headers: {
@@ -564,7 +570,7 @@ ${contexto || 'Sin contexto disponible.'}`;
         }
       );
       if (r.ok || (r.status !== 503 && r.status !== 429)) break;
-      console.warn('Gemini ' + r.status + ' — reintentando (' + (intento + 1) + ' de ' + (ESPERAS_MS.length - 1) + ')...');
+      console.warn('Gemini ' + r.status + ' con ' + paso.modelo + ' — probando siguiente intento...');
     }
 
     if (!r.ok) {
