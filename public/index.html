@@ -4855,6 +4855,30 @@ function handleFileUpload(event) {
   reader.readAsText(file, "utf-8");
 }
 
+// Convierte texto a número entendiendo formatos: "46,5" · "1.096,10" · "1,096.10" · "1234.5"
+function parseNumeroTXT(s) {
+  if (s === null || s === undefined) return 0;
+  let t = String(s).trim().replace(/\s/g, "");
+  if (!t) return 0;
+  const tieneComa = t.includes(","), tienePunto = t.includes(".");
+  if (tieneComa && tienePunto) {
+    // El separador decimal es el que aparece de último
+    if (t.lastIndexOf(",") > t.lastIndexOf(".")) t = t.replace(/\./g, "").replace(",", ".");  // 1.096,10 → 1096.10
+    else t = t.replace(/,/g, "");                                                             // 1,096.10 → 1096.10
+  } else if (tieneComa) {
+    const partes = t.split(",");
+    if (partes.length > 2) t = t.replace(/,/g, "");   // 1,234,567 → miles
+    else t = t.replace(",", ".");                     // 46,5 → 46.5
+  } else if (tienePunto) {
+    const partes = t.split(".");
+    if (partes.length > 2) t = t.replace(/\./g, "");  // 1.234.567 → miles
+    else if (partes[1] && partes[1].length === 3 && partes[0] !== "" && partes[0] !== "0")
+      t = t.replace(".", "");                          // 1.096 → 1096 (punto de miles)
+  }
+  const n = parseFloat(t);
+  return isNaN(n) ? 0 : n;
+}
+
 function parseTXT(text) {
   // Detectar separador automáticamente: tab > pipe > punto y coma > coma
   const lines = text.replace(/\r/g, "").split("\n").map(l => l.trim()).filter(l => l);
@@ -4891,7 +4915,7 @@ function parseTXT(text) {
       descripcion: get(iDesc >= 0 ? iDesc : 1, "").toUpperCase(),
       almacen:     get(iAlm  >= 0 ? iAlm  : 2, "P01") || "P01",
       fisico:      0,
-      sap:         parseFloat(get(iFis >= 0 ? iFis : iSap >= 0 ? iSap : 3, "0").replace(",", ".")) || 0
+      sap:         parseNumeroTXT(get(iFis >= 0 ? iFis : iSap >= 0 ? iSap : 3, "0"))
     };
   }).filter(a => a.codigo);
 }
@@ -6390,6 +6414,23 @@ async function ejecutarAccionIA(acc, burbuja) {
         art.fisico = valor; art._contado = true;
         markDirty(); renderMatrix();
         return `✅ Físico del código ${cod} actualizado a ${valor}.`;
+      }
+
+      case 'editar_sap': {
+        if (role !== 'admin') return '⛔ Solo el administrador puede editar el valor SAP.';
+        if (!activeInv || !DB[activeInv]) return '⚠️ Primero seleccione un recuento en Vista Previa.';
+        const cod = String(p.codigo || '').trim();
+        const idx = (DB[activeInv].articulos || []).findIndex(a => String(a.codigo) === cod);
+        if (idx < 0) return `⚠️ No encontré el código ${cod} en el recuento activo.`;
+        const valor = Number(p.valor);
+        if (isNaN(valor)) return '⚠️ El valor debe ser numérico.';
+        const art = DB[activeInv].articulos[idx];
+        const ok = await appConfirm(`${art.codigo} — ${art.descripcion}\nSAP: ${art.sap} → ${valor}`,
+          { titulo: '¿Actualizar valor SAP?', icono: '✏️', okLabel: 'Actualizar', okDanger: false });
+        if (!ok) return 'Operación cancelada, como usted ordene.';
+        art.sap = valor;
+        markDirty(); renderMatrix();
+        return `✅ SAP del código ${cod} actualizado a ${valor}.`;
       }
 
       case 'exportar_csv': {
