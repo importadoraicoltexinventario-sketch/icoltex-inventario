@@ -6228,15 +6228,27 @@ function limpiarChatIA() {
   cont.querySelectorAll('.ia-msg').forEach(el => el.remove());
 }
 
+// ── VOZ: preferencia de Nieves (elegida por Israel) con respaldo ──
+// Preferida: Microsoft Raul (es-MX). Si no existe en este equipo, usa la primera voz en español.
+const VOZ_PREFERIDA = 'Microsoft Raul';
+const VOZ_PITCH = 1.5;   // tono
+const VOZ_RATE  = 1.38;  // velocidad
+function elegirVozNieves() {
+  const voces = speechSynthesis.getVoices();
+  return voces.find(v => v.name && v.name.indexOf(VOZ_PREFERIDA) !== -1)
+      || voces.find(v => v.lang && v.lang.startsWith('es'))
+      || null;
+}
+
 // ── VOZ: leer notificaciones entrantes (mensajes directos) en voz alta ──
 function hablarNotif(texto) {
   if (!('speechSynthesis' in window) || !texto) return;
   try {
     const u = new SpeechSynthesisUtterance('Mensaje recibido. ' + texto.replace(/[💬🔔✅⚠️]/g, ' '));
-    u.lang = 'es-ES';
-    const vozEs = speechSynthesis.getVoices().find(v => v.lang && v.lang.startsWith('es'));
-    if (vozEs) u.voice = vozEs;
-    u.rate = 1.02;
+    const voz = elegirVozNieves();
+    if (voz) { u.voice = voz; u.lang = voz.lang; } else { u.lang = 'es-ES'; }
+    u.pitch = VOZ_PITCH;
+    u.rate  = VOZ_RATE;
     speechSynthesis.speak(u);
   } catch(e) {}
 }
@@ -6247,11 +6259,10 @@ function hablarIA(texto) {
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(texto.replace(/[✅⚠️🎩📦🔊🎤🗑️→|]/g, ' '));
-    u.lang = 'es-ES';
-    const voces = speechSynthesis.getVoices();
-    const vozEs = voces.find(v => v.lang && v.lang.startsWith('es'));
-    if (vozEs) u.voice = vozEs;
-    u.rate = 1.02;
+    const voz = elegirVozNieves();
+    if (voz) { u.voice = voz; u.lang = voz.lang; } else { u.lang = 'es-ES'; }
+    u.pitch = VOZ_PITCH;
+    u.rate  = VOZ_RATE;
     u.onstart = () => { try { document.getElementById('nievesOrb').classList.add('orb-hablando'); } catch(e){} };
     u.onend = () => {
       try { document.getElementById('nievesOrb').classList.remove('orb-hablando'); } catch(e){}
