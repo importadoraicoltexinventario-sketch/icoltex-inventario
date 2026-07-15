@@ -546,16 +546,16 @@ ${contexto || 'Sin contexto disponible.'}`;
     }));
 
     // Modelo con nivel gratuito. Si tu clave no lo acepta, prueba con
-    // 'gemini-2.0-flash' o consulta los modelos vigentes en https://ai.google.dev
-    const MODELO = 'gemini-2.5-flash-lite'; // cuota gratuita más generosa que gemini-2.5-flash
+    // los modelos vigentes se consultan en https://ai.google.dev
+    const MODELO = 'gemini-flash-lite-latest'; // alias que apunta al flash-lite más reciente (los 2.5/2.0 fueron retirados para cuentas nuevas)
 
     // Reintentos con modelo de respaldo ante saturación (503) o cuota (429):
     // 2 intentos con el modelo principal y 2 con el de respaldo (cuota y capacidad separadas).
     const INTENTOS = [
       { modelo: MODELO, espera: 0 },
       { modelo: MODELO, espera: 1200 },
-      { modelo: 'gemini-2.0-flash-lite', espera: 400 },
-      { modelo: 'gemini-2.0-flash-lite', espera: 1500 }
+      { modelo: 'gemini-3.1-flash-lite', espera: 400 },
+      { modelo: 'gemini-3.1-flash-lite', espera: 1500 }
     ];
     let r = null;
     for (const paso of INTENTOS) {
